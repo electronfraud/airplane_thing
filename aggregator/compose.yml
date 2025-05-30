@@ -1,0 +1,7 @@
+services:
+  aggregator:
+    image: aggregator
+    build:
+      context: .
+    environment:
+      - PYTHONUNBUFFERED=1

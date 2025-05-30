@@ -1,0 +1,3 @@
+[submodule "radio/dump1090"]
+	path = radio/dump1090
+	url = https://github.com/antirez/dump1090

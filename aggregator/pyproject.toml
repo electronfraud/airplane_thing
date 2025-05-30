@@ -1,0 +1,51 @@
+[project]
+name = "aggregator"
+version = "0.1.0"
+dependencies = [
+    "asyncio",
+    "bitstring",
+    "pyModeS",
+    "websockets"
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "pylint",
+    "pyright",
+    "pytest",
+]
+
+[tool.black]
+line-length = 120
+target-version = ['py312', 'py313']
+
+[tool.pylint]
+ignore = ["build", "venv"]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint."messages control"]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "too-few-public-methods",
+    "global-statement"
+]
+
+[tool.pyright]
+exclude = ["build", "venv"]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = true
+reportMissingImports = true
+reportMissingTypeArgument = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"

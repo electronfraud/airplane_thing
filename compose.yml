@@ -1,0 +1,4 @@
+include:
+  - aggregator/compose.yml
+  - frontend/compose.yml
+  - radio/compose.yml

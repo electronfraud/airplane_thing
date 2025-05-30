@@ -1,0 +1,9 @@
+dist
+node_modules
+
+__pycache__
+venv
+*.egg-info
+build
+
+frontend/src/token.ts

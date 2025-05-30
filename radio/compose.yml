@@ -1,0 +1,8 @@
+services:
+  radio:
+    image: radio
+    build:
+      context: .
+    privileged: true
+    volumes:
+      - /dev:/dev

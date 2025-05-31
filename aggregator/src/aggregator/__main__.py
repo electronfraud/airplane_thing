@@ -18,7 +18,7 @@ async def main() -> int:
     logging.set_src_root(os.path.dirname(__file__))
 
     api_server = api.Server("", 9999)
-    ingester = Ingester(os.environ["RADIO_HOST"], os.environ["RADIO_PORT"], Decoder())
+    ingester = Ingester(os.environ["RADIO_HOST"], int(os.environ["RADIO_PORT"]), Decoder())
     correlator = Correlator(ingester.out_queue, api_server.update)
 
     def graceful_exit(signame: str) -> None:

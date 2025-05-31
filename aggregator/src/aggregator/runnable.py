@@ -12,6 +12,7 @@ class Runnable(ABC):
     As a convenience, if `step` raises asyncio.queues.QueueShutDown after `stop` has been called, Runnable assumes the
     exception is part of an orderly shutdown and ignores it. `run` will then exit normally.
     """
+
     def __init__(self, name: str | None = None):
         if name is None:
             self._name = type(self).__name__

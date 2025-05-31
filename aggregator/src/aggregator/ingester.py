@@ -1,7 +1,7 @@
 import asyncio
 
-from aggregator import decoder as decoder_
-from aggregator.decoder import DecodingError, Decoder
+from aggregator.decoder.message import ModeSMessage
+from aggregator.decoder.decoder import DecodingError, Decoder
 from aggregator.logging import log
 from aggregator.runnable import Runnable
 
@@ -9,7 +9,7 @@ from aggregator.runnable import Runnable
 class Ingester(Runnable):
     def __init__(self, host: str, port: int, decoder: Decoder):
         super().__init__()
-        self.out_queue = asyncio.Queue[decoder_.Message]()
+        self.out_queue: asyncio.Queue[ModeSMessage] = asyncio.Queue[ModeSMessage]()
         self._host = host
         self._port = port
         self._decoder = decoder

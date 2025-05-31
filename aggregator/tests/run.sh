@@ -3,7 +3,8 @@
 failures=()
 
 stage() {
-    local output="$($2 2>&1)"
+    local output
+    output="$($2 2>&1)"
     if [ $? -eq 0 ]; then
         echo -n -e "\e[0;32m"
     else

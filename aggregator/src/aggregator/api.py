@@ -48,4 +48,7 @@ class Server:
                 futures.append(ws.send(message))
             except ConnectionClosedOK:
                 pass
-        await asyncio.gather(*futures)
+        try:
+            await asyncio.gather(*futures)
+        except ConnectionClosedOK:
+            pass

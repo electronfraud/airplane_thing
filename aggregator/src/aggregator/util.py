@@ -21,6 +21,7 @@ class LeakyDictionary[K, V]:
     """
     A dictionary whose items expire after a configurable length of time.
     """
+
     def __init__(self, expiry_secs: int):
         """
         Create a new leaky dictionary whose items expire `expiry_secs` seconds after being set.
@@ -33,7 +34,7 @@ class LeakyDictionary[K, V]:
         """
         Return the value for a key. If the item exists but has expired, raises KeyError as though the item didn't exist.
         """
-        from aggregator.logging import log
+        from aggregator.logging import log  # pylint: disable=import-outside-toplevel
 
         timestamp, value = self._underlying[key]
         if time.time() - timestamp > self._expiry_secs:
@@ -57,13 +58,13 @@ class LeakyDictionary[K, V]:
         Return True if the key exists in the dictionary and the item hasn't expired.
         """
         try:
-            self[key] # type: ignore
+            self[key]  # type: ignore
         except KeyError:
             return False
         return True
 
     def values(self) -> Iterable[V]:
-        from aggregator.logging import log
+        from aggregator.logging import log  # pylint: disable=import-outside-toplevel
 
         now = time.time()
         keys = list(self._underlying.keys())

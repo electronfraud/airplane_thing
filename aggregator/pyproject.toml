@@ -36,7 +36,10 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "too-few-public-methods",
-    "global-statement"
+    "global-statement",
+    "too-many-instance-attributes",
+    "fixme",
+    "too-many-return-statements"
 ]
 
 [tool.pyright]

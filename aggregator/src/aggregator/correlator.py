@@ -2,7 +2,16 @@ import asyncio
 from collections.abc import Awaitable, Callable, Iterable
 from typing import Any
 
-from aggregator import decoder
+from aggregator.decoder.message import (
+    ADSBAirbornePositionMessage,
+    ADSBAirborneVelocityMessage,
+    ADSBIdentificationMessage,
+    AltitudeType,
+    CommBReply,
+    ModeSMessage,
+    SurveillanceReplyAltitudeMessage,
+    SurveillanceReplyIdentityCodeMessage,
+)
 from aggregator.logging import log
 from aggregator.runnable import Runnable
 from aggregator.util import ExpiringValue, LeakyDictionary
@@ -111,12 +120,12 @@ class Aircraft:
 
 class Correlator(Runnable):
     def __init__(
-        self, in_queue: asyncio.Queue[decoder.Message], update_cb: Callable[[Iterable[Aircraft]], Awaitable[None]]
+        self, in_queue: asyncio.Queue[ModeSMessage], update_cb: Callable[[Iterable[Aircraft]], Awaitable[None]]
     ):
         super().__init__()
         self._queue = in_queue
         self._update_cb = update_cb
-        self.aircraft = LeakyDictionary[str, Aircraft](10)
+        self.aircraft: LeakyDictionary[str, Aircraft] = LeakyDictionary(10)
 
     async def step(self) -> None:
         message = await self._queue.get()
@@ -126,20 +135,27 @@ class Correlator(Runnable):
             aircraft = Aircraft(message.icao_address)
 
         match message:
-            case decoder.SurveillanceReplyAltitudeMessage():
+            case SurveillanceReplyAltitudeMessage():
                 aircraft.altitude = message.baro_pressure_altitude
-            case decoder.SurveillanceReplyIdentityCodeMessage():
+            case SurveillanceReplyIdentityCodeMessage():
                 aircraft.squawk = message.identity_code
-            case decoder.ADSBIdentificationMessage():
+            case ADSBIdentificationMessage():
                 aircraft.callsign = message.callsign
-            case decoder.ADSBAirbornePositionMessage():
-                if message.altitude_type == decoder.AltitudeType.BARO_PRESSURE:
+            case ADSBAirbornePositionMessage():
+                if message.altitude_type == AltitudeType.BARO_PRESSURE:
                     aircraft.altitude = message.altitude
                 aircraft.position = message.position
-            case decoder.ADSBAirborneVelocityMessage():
+            case ADSBAirborneVelocityMessage():
                 aircraft.ground_speed = message.ground_speed
                 aircraft.track = message.track
                 aircraft.vertical_speed = message.vertical_speed
+            case CommBReply():
+                if message.altitude is not None:
+                    aircraft.altitude = message.altitude
+                if message.identity_code is not None:
+                    aircraft.squawk = message.identity_code
+                if message.callsign is not None:
+                    aircraft.callsign = message.callsign
             case _:
                 log(f"don't know about Message subclass {type(message).__name__}")
 

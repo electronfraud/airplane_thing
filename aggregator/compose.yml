@@ -4,5 +4,5 @@ services:
     build:
       context: .
     environment:
-      RADIO_HOST: ${RADIO_HOST}
-      RADIO_PORT: ${RADIO_PORT}
+      RADIO_HOST: ${RADIO_HOST:-radio}
+      RADIO_PORT: ${RADIO_PORT:-30002}

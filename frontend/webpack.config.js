@@ -27,7 +27,7 @@ module.exports = {
         proxy: [
             {
                 context: ["/aggregator"],
-                target: "ws://aggregator:9999",
+                target: "ws://aggregator:9999/",
                 ws: true
             }
         ]

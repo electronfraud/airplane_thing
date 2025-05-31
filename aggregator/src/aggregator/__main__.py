@@ -14,15 +14,11 @@ from aggregator.ingester import Ingester
 from aggregator.logging import log
 
 
-def env_get(key: str, default: str) -> str:
-    return os.environ.get(key, default) or default
-
-
 async def main() -> int:
     logging.set_src_root(os.path.dirname(__file__))
 
     api_server = api.Server("", 9999)
-    ingester = Ingester(env_get("RADIO_HOST", "radio"), int(env_get("RADIO_PORT", "30002")), Decoder())
+    ingester = Ingester(os.environ["RADIO_HOST"], os.environ["RADIO_PORT"], Decoder())
     correlator = Correlator(ingester.out_queue, api_server.update)
 
     def graceful_exit(signame: str) -> None:

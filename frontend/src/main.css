@@ -8,6 +8,11 @@ body {
     margin: 0;
 }
 
+.custom-ctrl-zoom-to-fit .mapboxgl-ctrl-icon {
+    background-image: url("../static/zoom-to-fit.svg");
+    background-size: 78%;
+}
+
 @font-face {
     font-family: "Raleway";
     src: url("../static/Raleway-VariableFont_wght.ttf");

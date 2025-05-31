@@ -3,7 +3,7 @@ import "./main.css";
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from "mapbox-gl";
 
-import { AircraftLayer, addAircraftSymbol } from "./aircraft_layer";
+import { AircraftLayer, addAircraftSymbols } from "./aircraft_layer";
 import "./stale_indicator";
 import { MapboxToken } from "./token";
 import AggregatorClient from "./aggregator_client";
@@ -58,7 +58,7 @@ async function main() {
     });
 
     // add the aircraft layer
-    await addAircraftSymbol(map);
+    await addAircraftSymbols(map);
     const aircraftLayer = new AircraftLayer("aircraft", map);
 
     // subscribe to updates

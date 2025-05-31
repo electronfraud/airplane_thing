@@ -20,8 +20,8 @@ from aggregator.util import ExpiringValue, LeakyDictionary
 class Aircraft:
     def __init__(self, icao_address: str, expiry_secs: int = 10):
         self.icao_address = icao_address
-        self._callsign = ExpiringValue[str](60)
-        self._squawk = ExpiringValue[str](60)
+        self._callsign = ExpiringValue[str](60*5)
+        self._squawk = ExpiringValue[str](60*5)
         self._altitude = ExpiringValue[int](expiry_secs)
         self._position = ExpiringValue[tuple[float, float]](expiry_secs)
         self._ground_speed = ExpiringValue[int](expiry_secs)

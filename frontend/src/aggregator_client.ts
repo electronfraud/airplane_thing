@@ -1,4 +1,4 @@
-import { AircraftLayer } from "./aircraft_layer";
+import { AircraftLayer, TargetType } from "./aircraft_layer";
 import StaleIndicator from "./stale_indicator";
 
 interface IAircraftReport {
@@ -15,22 +15,9 @@ interface IAircraftReport {
 function dataBlock(aircraft: IAircraftReport): string {
     let result = "";
     if (typeof aircraft.callsign === "string") {
-        result += aircraft.callsign;
-    }
-    if (typeof aircraft.squawk === "string") {
-        if (result.length > 0) {
-            result += "\n";
-        }
-        result += aircraft.squawk;
+        result += aircraft.callsign + "\n";
     }
     if (typeof aircraft.altitude === "number") {
-        if (result.length > 0) {
-            result += "\n";
-        }
-        result += Math.round(aircraft.altitude / 100).toLocaleString(undefined, {
-            minimumIntegerDigits: 3
-        });
-
         if (typeof aircraft.vertical_speed === "number") {
             if (aircraft.vertical_speed <= -100) {
                 result += "↓";
@@ -40,17 +27,42 @@ function dataBlock(aircraft: IAircraftReport): string {
                 result += "=";
             }
         }
-
-        if (typeof aircraft.ground_speed === "number") {
-            if (typeof aircraft.vertical_speed !== "number") {
-                result += " ";
-            }
-            result += Math.round(aircraft.ground_speed / 10).toLocaleString(undefined, {
-                minimumIntegerDigits: 2
-            });
-        }
+        result += Math.round(aircraft.altitude / 100).toLocaleString(undefined, {
+            minimumIntegerDigits: 3
+        });
+        result += "\n";
+    }
+    if (typeof aircraft.ground_speed === "number") {
+        result += Math.round(aircraft.ground_speed).toString();
+    }
+    // prettier-ignore
+    switch (aircraft.squawk) {
+        case "1276": result += " ADIZ"; break;
+        case "7400": result += " LLNK"; break;
+        case "7500": result += " HIJK"; break;
+        case "7600": result += " RDOF"; break;
+        case "7700": result += " EMRG"; break;
+        case "7777": result += " AFIO"; break;
     }
     return result;
+}
+
+function targetType(aircraft: IAircraftReport): TargetType {
+    if (typeof aircraft.squawk === "undefined") {
+        if (typeof aircraft.altitude === "number") {
+            return "uncorrelated-beacon";
+        } else {
+            return "uncorrelated-primary";
+        }
+    }
+    if (aircraft.squawk.startsWith("120")) {
+        return "vfr";
+    }
+    return "correlated-beacon";
+}
+
+function isEmergency(aircraft: IAircraftReport): boolean {
+    return aircraft.squawk === "7500" || aircraft.squawk === "7600" || aircraft.squawk === "7700";
 }
 
 export default class AggregatorClient {
@@ -108,7 +120,9 @@ export default class AggregatorClient {
                     y: aircraft.position[0],
                     groundSpeed: aircraft.ground_speed,
                     course: aircraft.track,
-                    dataBlock: dataBlock(aircraft)
+                    dataBlock: dataBlock(aircraft),
+                    targetType: targetType(aircraft),
+                    emergency: isEmergency(aircraft)
                 };
             });
             this.aircraftLayer.update();

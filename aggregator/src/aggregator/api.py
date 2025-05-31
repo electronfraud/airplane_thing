@@ -3,6 +3,7 @@ from collections.abc import Awaitable, Iterable
 import json
 
 from websockets import ConnectionClosedOK
+import websockets
 from websockets.asyncio.server import serve, ServerConnection, Server as WebsocketsServer
 
 from aggregator import correlator
@@ -46,9 +47,9 @@ class Server:
         for ws in self._clients:
             try:
                 futures.append(ws.send(message))
-            except ConnectionClosedOK:
+            except websockets.WebSocketException:
                 pass
         try:
             await asyncio.gather(*futures)
-        except ConnectionClosedOK:
+        except websockets.WebSocketException:
             pass

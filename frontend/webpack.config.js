@@ -17,7 +17,7 @@ module.exports = {
             },
             {
                 test: /\.ttf$/,
-                use: "asset/resource"
+                type: "asset/resource"
             }
         ]
     },

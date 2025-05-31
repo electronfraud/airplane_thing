@@ -1,3 +1,15 @@
+# airplane_thing
+
+A complete software stack for tracking and mapping aircraft via Mode S and ADS-B.
+
+## Requirements
+
+- A Linux system
+- A software-defined radio compatible with dump1090
+- An antenna suitable for receiving on 1090 MHz
+
+I run airplane_thing on a Raspberry Pi 4 Model B with an RTL-SDR V3 kit that included a dipole.
+
 ## Installation
 
 1. Install Docker:
@@ -6,7 +18,7 @@ curl -sSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 ```
 2. Log out and log back in.
-3. Install git (if you haven't already):
+3. Install git:
 ```
 sudo apt install git
 ```
@@ -22,11 +34,11 @@ cd airplane_thing
 ```
 export const MapboxToken = "paste-your-token-here";
 ```
-6. Build the images:
+6. Build the Docker images:
 ```
 make images
 ```
-7. Run:
+7. Start it up (this will start the Docker images in the background and return you to a shell prompt):
 ```
 ./start.sh
 ```

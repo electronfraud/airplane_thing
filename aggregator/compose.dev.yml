@@ -1,0 +1,8 @@
+services:
+  aggregator:
+    build:
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+    environment:
+      PYTHONUNBUFFERED: 1

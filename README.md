@@ -24,11 +24,11 @@ export const MapboxToken = "paste-your-token-here";
 ```
 6. Build the images:
 ```
-docker compose build
+make images
 ```
 7. Run:
 ```
-docker compose up
+./start.sh
 ```
 8. In a browser, go to http://your-hostname-here:8080/
 

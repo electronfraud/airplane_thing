@@ -1,0 +1,7 @@
+FROM python:3.13
+
+WORKDIR /app
+COPY . .
+RUN pip install --editable .
+
+CMD ["python", "-m", "aggregator"]

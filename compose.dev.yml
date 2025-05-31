@@ -1,0 +1,3 @@
+include:
+  - aggregator/compose.dev.yml
+  - frontend/compose.dev.yml

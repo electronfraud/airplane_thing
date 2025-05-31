@@ -4,4 +4,5 @@ services:
     build:
       context: .
     environment:
-      - PYTHONUNBUFFERED=1
+      RADIO_HOST: ${RADIO_HOST}
+      RADIO_PORT: ${RADIO_PORT}

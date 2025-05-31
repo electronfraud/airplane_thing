@@ -6,3 +6,5 @@ services:
     privileged: true
     volumes:
       - /dev:/dev
+    profiles:
+      - radio

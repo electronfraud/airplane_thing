@@ -6,4 +6,5 @@ venv
 *.egg-info
 build
 
+aggregator/.env
 frontend/src/token.ts

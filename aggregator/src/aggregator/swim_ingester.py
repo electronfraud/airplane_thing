@@ -28,9 +28,10 @@ class FlightPlan:
     departure: str
     route: str
     arrival: str
+    assigned_altitude: int | None
 
     def as_dict(self) -> dict[str, Any]:
-        result = {
+        result: dict[str, Any] = {
             "icao_type": self.icao_type,
             "cid": self.cid,
             "departure": self.departure,
@@ -45,6 +46,8 @@ class FlightPlan:
             result["registration"] = self.registration
         if self.wake_category:
             result["wake_category"] = self.wake_category
+        if self.assigned_altitude:
+            result["assigned_altitude"] = self.assigned_altitude
         return result
 
 
@@ -141,5 +144,12 @@ class SWIMIngester(Runnable, MessageHandler):
                     departure=flight_tag.find("departure").get("departurePoint"), # type: ignore
                     route=flight_tag.find("agreed/route").get("nasRouteText"), # type: ignore
                     arrival=flight_tag.find("arrival").get("arrivalPoint"), # type: ignore
+                    assigned_altitude=_assigned_altitude(flight_tag)
                 )
             )
+
+def _assigned_altitude(flight_tag: ElementTree.Element) -> int | None:
+    simple_tag = flight_tag.find("assignedAltitude/simple")
+    if simple_tag is None:
+        return None
+    return int((simple_tag.text or "").strip().removesuffix(".0"))

@@ -72,7 +72,7 @@ class Aircraft:
         return self._callsign.get()
 
     @callsign.setter
-    def callsign(self, value: str) -> None:
+    def callsign(self, value: str | None) -> None:
         self._callsign.set(value)
 
     @property
@@ -144,6 +144,8 @@ class Correlator(Runnable):
         except KeyError:
             aircraft = Aircraft(message.icao_address)
             aircraft.flight_plan = self.flight_plans.get(message.icao_address)
+            if aircraft.flight_plan:
+                aircraft.callsign = aircraft.flight_plan.callsign
 
         match message:
             case SurveillanceReplyAltitudeMessage():
@@ -169,6 +171,7 @@ class Correlator(Runnable):
                     aircraft.callsign = message.callsign
             case FlightPlan():
                 aircraft.flight_plan = message
+                self.flight_plans[message.icao_address] = message
             case _:
                 log(f"don't know about message class {type(message).__name__}")
 

@@ -11,6 +11,7 @@ interface IFlightPlan {
     departure: string;
     route: string;
     arrival: string;
+    assigned_altitude?: number;
 }
 
 interface IAircraftReport {
@@ -30,40 +31,85 @@ function dataBlock(aircraft: IAircraftReport): string {
     if (typeof aircraft.callsign === "string") {
         result += aircraft.callsign + "\n";
     }
-    if (typeof aircraft.altitude === "number") {
-        if (typeof aircraft.vertical_speed === "number") {
-            if (aircraft.vertical_speed <= -100) {
-                result += "↓";
-            } else if (aircraft.vertical_speed >= 100) {
-                result += "↑";
-            } else {
-                result += "=";
-            }
-        }
-        result += Math.round(aircraft.altitude / 100).toLocaleString(undefined, {
+
+    const altitude =
+        typeof aircraft.altitude === "number"
+            ? Math.round(aircraft.altitude / 100).toLocaleString(undefined, { minimumIntegerDigits: 3 })
+            : undefined;
+
+    if (aircraft.flight_plan && typeof aircraft.flight_plan.assigned_altitude === "number") {
+        const assignedAltitude = Math.round(aircraft.flight_plan.assigned_altitude / 100).toLocaleString(undefined, {
             minimumIntegerDigits: 3
         });
-        result += "\n";
+        if (typeof aircraft.altitude === "number" && typeof altitude === "string") {
+            if (altitude === assignedAltitude) {
+                result += `${assignedAltitude}C\n`;
+            } else if (aircraft.altitude < aircraft.flight_plan.assigned_altitude) {
+                if (typeof aircraft.vertical_speed === "number") {
+                    if (aircraft.vertical_speed > 0) {
+                        result += `${assignedAltitude}↑${altitude}\n`;
+                    } else {
+                        result += `${assignedAltitude}-${altitude}\n`;
+                    }
+                } else {
+                    result += `${assignedAltitude} ${altitude}\n`;
+                }
+            } else {
+                if (typeof aircraft.vertical_speed === "number") {
+                    if (aircraft.vertical_speed < 0) {
+                        result += `${assignedAltitude}↓${altitude}\n`;
+                    } else {
+                        result += `${assignedAltitude}+${altitude}\n`;
+                    }
+                } else {
+                    result += `${assignedAltitude} ${altitude}\n`;
+                }
+            }
+        } else {
+            result += `${assignedAltitude}XXXX\n`;
+        }
+    } else if (
+        aircraft.squawk &&
+        (aircraft.squawk === "1200" || aircraft.squawk === "1201" || aircraft.squawk === "1202")
+    ) {
+        if (typeof altitude === "string") {
+            result += `VFR/${altitude}\n`;
+        } else {
+            result += "VFRXXXX\n";
+        }
+    } else {
+        if (typeof altitude === "string") {
+            result += `    ${altitude}\n`;
+        }
     }
-    if (typeof aircraft.ground_speed === "number") {
-        result += Math.round(aircraft.ground_speed).toString();
+
+    if (aircraft.flight_plan) {
+        result += aircraft.flight_plan.cid;
+    } else {
+        result += "   ";
     }
     // prettier-ignore
     switch (aircraft.squawk) {
-        case "1276": result += " ADIZ"; break;
-        case "7400": result += " LLNK"; break;
-        case "7500": result += " HIJK"; break;
-        case "7600": result += " RDOF"; break;
-        case "7700": result += " EMRG"; break;
-        case "7777": result += " AFIO"; break;
+        case "1276": result += "ADIZ\n"; break;
+        case "7400": result += "LLNK\n"; break;
+        case "7500": result += "HIJK\n"; break;
+        case "7600": result += "RDOF\n"; break;
+        case "7700": result += "EMRG\n"; break;
+        case "7777": result += "AFIO\n"; break;
+        default:
+            if (typeof aircraft.ground_speed === "number") {
+                result += " ";
+                result += Math.round(aircraft.ground_speed).toString();
+            }
+            result += "\n";
     }
+
     if (aircraft.flight_plan) {
-        result += "\n";
         result += aircraft.flight_plan.arrival;
-        result += " ";
-        result += aircraft.flight_plan.icao_type;
+        result += "\n";
     }
-    return result;
+
+    return result.trimEnd();
 }
 
 function targetType(aircraft: IAircraftReport): TargetType {

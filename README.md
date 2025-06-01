@@ -76,6 +76,16 @@ whether the aircraft is climbing, level, or descending. The example aircraft is 
 Climbing and descending aircraft will have an up or down arrow in this position. Finally, the third line shows ground
 speed in knots. The example aircraft is moving at 400 knots (460 mph, 741 km/h).
 
+If an aircraft is squawking one of the special emergency transponder codes, it will be displayed in red, and a code
+will appear on the last line of the data block:
+
+- `ADIZ`: Aircraft is penetrating the Air Defense Identification Zone but is unable to establish contact with ATC.
+- `LLNK`: Unmanned aircraft has lost its control link.
+- `HIJK`: Unlawful interference.
+- `RDOF`: Aircraft's voice radio(s) have malfunctioned and are inoperative.
+- `EMRG`: Unspecified emergency.
+- `AFIO`: Military aircraft operating without ATC clearance.
+
 Note that the symbology communicates what kinds of information have been _received_, not necessarily the truth about
 the flights themselves. For example, if airplane_thing hasn't received a transponder code for an aircraft, it doesn't
 necessarily mean the aircraft isn't squawking a code; it just means airplane_thing hasn't received and decoded a

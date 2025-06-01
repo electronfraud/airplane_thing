@@ -63,9 +63,11 @@ function targetType(aircraft: IAircraftReport): TargetType {
 function isEmergency(aircraft: IAircraftReport): boolean {
     return (
         aircraft.squawk === "1276" ||
+        aircraft.squawk === "7400" ||
         aircraft.squawk === "7500" ||
         aircraft.squawk === "7600" ||
-        aircraft.squawk === "7700"
+        aircraft.squawk === "7700" ||
+        aircraft.squawk === "7777"
     );
 }
 

@@ -3,7 +3,7 @@
 compose_files="-f compose.yml"
 
 if [ "x$1" == "x--expose-radio" ]; then
-    compose_files=" -f compose.expose-radio.yml"
+    compose_files+=" -f compose.expose-radio.yml"
 fi
 
 if [ "x$1" == "x--dev" ]; then

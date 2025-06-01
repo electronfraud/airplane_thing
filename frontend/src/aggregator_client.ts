@@ -79,14 +79,12 @@ function dataBlock(aircraft: IAircraftReport): string {
         }
     } else {
         if (typeof altitude === "string") {
-            result += `    ${altitude}\n`;
+            result += `${altitude}\n`;
         }
     }
 
     if (aircraft.flight_plan) {
         result += aircraft.flight_plan.cid;
-    } else {
-        result += "   ";
     }
     // prettier-ignore
     switch (aircraft.squawk) {
@@ -98,7 +96,7 @@ function dataBlock(aircraft: IAircraftReport): string {
         case "7777": result += "AFIO\n"; break;
         default:
             if (typeof aircraft.ground_speed === "number") {
-                result += " ";
+                result += " ";
                 result += Math.round(aircraft.ground_speed).toString();
             }
             result += "\n";

@@ -23,28 +23,35 @@ async def main() -> int:
     mode_s_ingester = ModeSIngester(
         correlator.in_queue, os.environ["RADIO_HOST"], int(os.environ["RADIO_PORT"]), Decoder()  # type: ignore
     )
-    swim_ingester = SWIMIngester(
-        correlator.in_queue,  # type: ignore
-        os.environ["SWIM_URL"],
-        os.environ["SWIM_QUEUE"],
-        os.environ["SWIM_USER"],
-        os.environ["SWIM_PASSWORD"],
-        os.environ["SWIM_VPN"]
-    )
+    if os.environ.get("SWIM_URL"):
+        swim_ingester = SWIMIngester(
+            correlator.in_queue,  # type: ignore
+            os.environ["SWIM_URL"],
+            os.environ["SWIM_QUEUE"],
+            os.environ["SWIM_USER"],
+            os.environ["SWIM_PASSWORD"],
+            os.environ["SWIM_VPN"]
+        )
+    else:
+        swim_ingester = None
 
     def graceful_exit(signame: str) -> None:
         log(signame)
         api_server.stop()
         correlator.stop()
         mode_s_ingester.stop()
-        swim_ingester.stop()
+        if swim_ingester:
+            swim_ingester.stop()
 
     loop = asyncio.get_running_loop()
     for signame in ("SIGINT", "SIGTERM"):
         loop.add_signal_handler(getattr(signal, signame), functools.partial(graceful_exit, signame))
 
     try:
-        await asyncio.gather(api_server.run(), correlator.run(), mode_s_ingester.run(), swim_ingester.run())
+        if swim_ingester:
+            await asyncio.gather(api_server.run(), correlator.run(), mode_s_ingester.run(), swim_ingester.run())
+        else:
+            await asyncio.gather(api_server.run(), correlator.run(), mode_s_ingester.run())
     except Exception as exc:  # pylint: disable=broad-exception-caught
         log("uncaught exception")
         traceback_buffer = io.StringIO()

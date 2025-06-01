@@ -62,9 +62,18 @@ aircraft type, assigned altitude, etc. The setup is a little complicated but wor
   3. Queue name
   4. JMS connection URL
   5. Message VPN
-4. When starting airplane_thing, use the following command, filling in the information you collected in step 3:
+4. Create a file in `aggregator` called `.env` with the following contents:
 ```
-SWIM_URL="url here" SWIM_QUEUE="queue name here" SWIM_USER="username here" SWIM_PASSWORD="password here" SWIM_VPN="" ./start.sh
+SWIM_URL="url here"
+SWIM_QUEUE="queue name here"
+SWIM_USER="username here"
+SWIM_PASSWORD="password here"
+SWIM_VPN=""
+```
+4. If airplane_thing is running, restart it:
+```
+./stop.sh
+./start.sh
 ```
 
 Note that the values for SWIM_USER and SWIM_PASSWORD are the connection username and connection password from your
@@ -132,3 +141,14 @@ the flights themselves. For example, if airplane_thing hasn't received a transpo
 necessarily mean the aircraft isn't squawking a code; it just means airplane_thing hasn't received and decoded a
 message containing a transponder code from that aircraft recently. This can happen for any number of reasons, most of
 which have to do with receiver performance.
+
+## Developing
+
+`./start.sh` has two command-line options that can be used to make hacking on airplane_thing a little easier:
+`--expose-radio` and `--dev`. The way I use these is I run from `main` `HEAD` on my Raspberry Pi that has my SDR; I
+start this instance with `./start.sh --expose-radio`. This exposes port 30002 on the `radio` container so that other
+instances can use the SDR. Then, on my laptop, I run from my work-in-progress repo by running
+`RADIO_HOST=ip-of-raspberry-pi ./start.sh --dev`. This starts airplane_thing with no `radio` container, tells
+`aggregator` to connect to my Raspberry Pi to get data from the SDR there instead, and makes it so I don't have to
+rebuild the Docker images every time I change any code. The frontend will reload code changes automatically;
+`aggregator` must be restarted with `docker restart` to pick up changes (but does not need to be rebuilt).

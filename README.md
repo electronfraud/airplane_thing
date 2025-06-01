@@ -46,27 +46,36 @@ make images
 
 ## What is all this nonsense?
 
-The display is loosely based on Air Traffic Control radar displays. Each square is an aircraft. If the square has a
-line coming out of it, the aircraft will be at the tip of the line in one minute (at current speed and course). If
-speed and course data haven't arrived recently, no line will be drawn.
+The display is loosely based on real Air Traffic Control radar displays. Targets (aircraft) are depicted by symbols
+that vary depending on what kinds of information the system has received about them:
 
-Aircraft also have data blocks next to them. Not all information will be available at all times--it all depends on
-which data has been received and how recently--but a full data block will look like this:
+- `/`: Target has an altitude and a transponder code.
+- `\`: Target has an altitude but no transponder code.
+- `+`: Target has neither altitude nor transponder code information.
+- `V`: Target's transponder code is 120x (where x is any number from zero to seven), i.e. it is VFR and not receiving
+  radar services.
+
+If a target has velocity information (ground speed and course), there will be a line extending out from the target. The
+tip of the line is where the aircraft will be in one minute if it maintains its present ground speed and course.
+
+Additional information, when available, is depicted in a data block next to each target. Here is an example of a
+complete data block:
 
 ```
 AAL404
-3274
-390=40
+=390
+400
 ```
 
 The first line is the flight number, callsign, or aircraft registration number. In the example, this is AAL404, i.e.
-American Airlines flight 404. The second line is the aircraft's current transponder code, or "squawk," which is
-assigned by Air Traffic Control to help identify the aircraft on radar. Squawks can change as aircraft cross into new
-ATC sectors, and some squawks have special meanings: 1200 is used by aircraft who aren't under ATC control, 7600 is
-used to indicate that the aircraft's radio is inoperative, and 7700 signifies an emergency.
+American Airlines flight 404. The second line has two elements: vertical tendency and altitude. Altitude is in hundreds
+of feet, so the example aircraft is at 39,000 feet (technically "flight level" 390, or FL390). Vertical tendency shows
+whether the aircraft is climbing, level, or descending. The example aircraft is level, so it has an equal sign.
+Climbing and descending aircraft will have an up or down arrow in this position. Finally, the third line shows ground
+speed in knots. The example aircraft is moving at 400 knots (460 mph, 741 km/h).
 
-The third line has three elements: altitude, vertical tendency, and ground speed. Altitude is in hundreds of feet, so
-the example is at 39,000 feet. Vertical tendency indicates whether the aircraft is climbing, level, or descending. The
-example aircraft is level, so it has an equal sign. Climbing and descending aircraft will have an up or down arrow in
-this position. Finally, ground speed is in tens of knots. The example aircraft is moving at 400 knots (460 mph,
-741 km/h).
+Note that the symbology communicates what kinds of information have been _received_, not necessarily the truth about
+the flights themselves. In other words, if airplane_thing hasn't received a transponder code for an aircraft, it
+doesn't necessarily mean the aircraft isn't squawking a code; it just means airplane_thing hasn't received and decoded
+a message containing a transponder code recently. This can happen for any number of reasons, most of which have to do
+with antenna performance.

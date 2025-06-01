@@ -2,14 +2,14 @@ import asyncio
 
 from aggregator.decoder.message import ModeSMessage
 from aggregator.decoder.decoder import DecodingError, Decoder
-from aggregator.logging import log
+from aggregator.log import log
 from aggregator.runnable import Runnable
 
 
-class Ingester(Runnable):
-    def __init__(self, host: str, port: int, decoder: Decoder):
+class ModeSIngester(Runnable):
+    def __init__(self, out_queue: asyncio.Queue[ModeSMessage], host: str, port: int, decoder: Decoder):
         super().__init__()
-        self.out_queue: asyncio.Queue[ModeSMessage] = asyncio.Queue[ModeSMessage]()
+        self._queue = out_queue
         self._host = host
         self._port = port
         self._decoder = decoder
@@ -32,7 +32,7 @@ class Ingester(Runnable):
                     log(f"decoding error: {error} (future errors of this kind will be suppressed)")
                     self._errors_seen.add(error)
             else:
-                self.out_queue.put_nowait(decoded)
+                self._queue.put_nowait(decoded)
 
     async def _connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter] | tuple[None, None]:
         while self.is_running():
@@ -50,4 +50,4 @@ class Ingester(Runnable):
 
     def stop(self) -> None:
         super().stop()
-        self.out_queue.shutdown()
+        self._queue.shutdown()

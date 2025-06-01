@@ -12,21 +12,23 @@ from aggregator.decoder.message import (
     SurveillanceReplyAltitudeMessage,
     SurveillanceReplyIdentityCodeMessage,
 )
-from aggregator.logging import log
+from aggregator.log import log
 from aggregator.runnable import Runnable
+from aggregator.swim_ingester import FlightPlan
 from aggregator.util import ExpiringValue, LeakyDictionary
 
 
 class Aircraft:
     def __init__(self, icao_address: str, expiry_secs: int = 10):
         self.icao_address = icao_address
-        self._callsign = ExpiringValue[str](60*5)
-        self._squawk = ExpiringValue[str](60*5)
+        self._callsign = ExpiringValue[str](60 * 5)
+        self._squawk = ExpiringValue[str](60 * 5)
         self._altitude = ExpiringValue[int](expiry_secs)
         self._position = ExpiringValue[tuple[float, float]](expiry_secs)
         self._ground_speed = ExpiringValue[int](expiry_secs)
         self._track = ExpiringValue[float](expiry_secs)
         self._vertical_speed = ExpiringValue[int](expiry_secs)
+        self.flight_plan: FlightPlan | None = None
 
     def as_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {"icao_address": self.icao_address}
@@ -58,6 +60,10 @@ class Aircraft:
         vertical_speed = self.vertical_speed
         if vertical_speed is not None:
             result["vertical_speed"] = vertical_speed
+
+        flight_plan = self.flight_plan
+        if flight_plan is not None:
+            result["flight_plan"] = flight_plan.as_dict()
 
         return result
 
@@ -120,19 +126,24 @@ class Aircraft:
 
 class Correlator(Runnable):
     def __init__(
-        self, in_queue: asyncio.Queue[ModeSMessage], update_cb: Callable[[Iterable[Aircraft]], Awaitable[None]]
+        self,
+        update_cb: Callable[[Iterable[Aircraft]], Awaitable[None]],
     ):
         super().__init__()
-        self._queue = in_queue
+        self.in_queue: asyncio.Queue[ModeSMessage | FlightPlan] = asyncio.Queue[ModeSMessage | FlightPlan]()
         self._update_cb = update_cb
         self.aircraft: LeakyDictionary[str, Aircraft] = LeakyDictionary(10)
+        self.flight_plans: LeakyDictionary[str, FlightPlan] = LeakyDictionary(3600)
 
     async def step(self) -> None:
-        message = await self._queue.get()
+        message = await self.in_queue.get()
+        if message.icao_address is None:
+            return
         try:
             aircraft = self.aircraft[message.icao_address]
         except KeyError:
             aircraft = Aircraft(message.icao_address)
+            aircraft.flight_plan = self.flight_plans.get(message.icao_address)
 
         match message:
             case SurveillanceReplyAltitudeMessage():
@@ -156,8 +167,10 @@ class Correlator(Runnable):
                     aircraft.squawk = message.identity_code
                 if message.callsign is not None:
                     aircraft.callsign = message.callsign
+            case FlightPlan():
+                aircraft.flight_plan = message
             case _:
-                log(f"don't know about Message subclass {type(message).__name__}")
+                log(f"don't know about message class {type(message).__name__}")
 
         self.aircraft[message.icao_address] = aircraft
         await self._update_cb(self.aircraft.values())

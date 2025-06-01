@@ -1,6 +1,18 @@
 import { AircraftLayer, TargetType } from "./aircraft_layer";
 import StaleIndicator from "./stale_indicator";
 
+interface IFlightPlan {
+    icao_address?: string;
+    callsign?: string;
+    registration?: string;
+    icao_type: string;
+    wake_category?: string;
+    cid: string;
+    departure: string;
+    route: string;
+    arrival: string;
+}
+
 interface IAircraftReport {
     icao_address: string;
     position: [number, number];
@@ -10,6 +22,7 @@ interface IAircraftReport {
     ground_speed?: number;
     vertical_speed?: number;
     squawk?: string;
+    flight_plan?: IFlightPlan;
 }
 
 function dataBlock(aircraft: IAircraftReport): string {
@@ -43,6 +56,12 @@ function dataBlock(aircraft: IAircraftReport): string {
         case "7600": result += " RDOF"; break;
         case "7700": result += " EMRG"; break;
         case "7777": result += " AFIO"; break;
+    }
+    if (aircraft.flight_plan) {
+        result += "\n";
+        result += aircraft.flight_plan.arrival;
+        result += " ";
+        result += aircraft.flight_plan.icao_type;
     }
     return result;
 }
@@ -128,7 +147,8 @@ export default class AggregatorClient {
                     course: aircraft.track,
                     dataBlock: dataBlock(aircraft),
                     targetType: targetType(aircraft),
-                    emergency: isEmergency(aircraft)
+                    isEmergency: isEmergency(aircraft),
+                    hasFlightPlan: !!aircraft.flight_plan
                 };
             });
             this.aircraftLayer.update();

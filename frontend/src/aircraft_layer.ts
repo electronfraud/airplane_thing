@@ -14,7 +14,16 @@ export interface IAircraftFeature {
     groundSpeed?: number;
     dataBlock?: string;
     targetType: TargetType;
-    emergency: boolean;
+    isEmergency: boolean;
+    hasFlightPlan: boolean;
+}
+
+function drawFlightPlanSymbol(ctx: CanvasRenderingContext2D) {
+    ctx.moveTo(9, 3);
+    ctx.lineTo(15, 9);
+    ctx.lineTo(9, 15);
+    ctx.lineTo(3, 9);
+    ctx.lineTo(9, 3);
 }
 
 export async function addAircraftSymbols(map: mapboxgl.Map) {
@@ -28,50 +37,50 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
         ["", ConsoleGreen],
         ["emergency-", ConsoleRed]
     ];
-    for (const variation of variations) {
-        ctx.strokeStyle = variation[1];
+    for (const hasFlightPlan of [false, true]) {
+        const flightPlan = hasFlightPlan ? "flight-plan-" : "";
+        for (const variation of variations) {
+            ctx.strokeStyle = variation[1];
 
-        // diamond
-        // ctx.moveTo(9, 3);
-        // ctx.lineTo(15, 9);
-        // ctx.lineTo(9, 15);
-        // ctx.lineTo(3, 9);
-        // ctx.lineTo(9, 3);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(4, 0.5);
+            ctx.lineTo(14, 17.5);
+            if (hasFlightPlan) drawFlightPlanSymbol(ctx);
+            ctx.stroke();
+            let symbol = await createImageBitmap(canvas);
+            map.addImage(`squawk-${flightPlan}${variation[0]}symbol`, symbol);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(4, 0.5);
-        ctx.lineTo(14, 17.5);
-        ctx.stroke();
-        let symbol = await createImageBitmap(canvas);
-        map.addImage(`squawk-${variation[0]}symbol`, symbol);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(14, 0.5);
+            ctx.lineTo(4, 17.5);
+            if (hasFlightPlan) drawFlightPlanSymbol(ctx);
+            ctx.stroke();
+            symbol = await createImageBitmap(canvas);
+            map.addImage(`alt-no-squawk-${flightPlan}${variation[0]}symbol`, symbol);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(14, 0.5);
-        ctx.lineTo(4, 17.5);
-        ctx.stroke();
-        symbol = await createImageBitmap(canvas);
-        map.addImage(`alt-no-squawk-${variation[0]}symbol`, symbol);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(9, 2.5);
+            ctx.lineTo(9, 15.5);
+            ctx.moveTo(4, 9);
+            ctx.lineTo(14, 9);
+            if (hasFlightPlan) drawFlightPlanSymbol(ctx);
+            ctx.stroke();
+            symbol = await createImageBitmap(canvas);
+            map.addImage(`no-alt-no-squawk-${flightPlan}${variation[0]}symbol`, symbol);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(9, 2.5);
-        ctx.lineTo(9, 15.5);
-        ctx.moveTo(4, 9);
-        ctx.lineTo(14, 9);
-        ctx.stroke();
-        symbol = await createImageBitmap(canvas);
-        map.addImage(`no-alt-no-squawk-${variation[0]}symbol`, symbol);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(3.5, 2);
-        ctx.lineTo(9, 16);
-        ctx.lineTo(14.5, 2);
-        ctx.stroke();
-        symbol = await createImageBitmap(canvas);
-        map.addImage(`vfr-${variation[0]}symbol`, symbol);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.moveTo(3.5, 2);
+            ctx.lineTo(9, 16);
+            ctx.lineTo(14.5, 2);
+            if (hasFlightPlan) drawFlightPlanSymbol(ctx);
+            ctx.stroke();
+            symbol = await createImageBitmap(canvas);
+            map.addImage(`vfr-${flightPlan}${variation[0]}symbol`, symbol);
+        }
     }
 }
 
@@ -107,7 +116,8 @@ export class AircraftLayer {
                     "icon-image": [
                         "concat",
                         ["get", "targetType"],
-                        ["case", ["get", "emergency"], "-emergency", ""],
+                        ["case", ["get", "hasFlightPlan"], "-flight-plan", ""],
+                        ["case", ["get", "isEmergency"], "-emergency", ""],
                         "-symbol"
                     ],
                     "icon-allow-overlap": true,
@@ -119,7 +129,7 @@ export class AircraftLayer {
                     "text-allow-overlap": true
                 },
                 paint: {
-                    "text-color": ["case", ["get", "emergency"], ConsoleRed, ConsoleGreen]
+                    "text-color": ["case", ["get", "isEmergency"], ConsoleRed, ConsoleGreen]
                 }
             });
 
@@ -135,7 +145,7 @@ export class AircraftLayer {
                 type: "line",
                 source: that.vectorSourceId,
                 paint: {
-                    "line-color": ["case", ["get", "emergency"], ConsoleRed, ConsoleGreen]
+                    "line-color": ["case", ["get", "isEmergency"], ConsoleRed, ConsoleGreen]
                 }
             });
         });
@@ -155,7 +165,8 @@ export class AircraftLayer {
                     properties: {
                         dataBlock: feature.dataBlock,
                         targetType: feature.targetType,
-                        emergency: feature.emergency
+                        isEmergency: feature.isEmergency,
+                        hasFlightPlan: feature.hasFlightPlan
                     },
                     geometry: {
                         type: "Point",
@@ -190,7 +201,7 @@ export class AircraftLayer {
 
             vectorFeatures.push({
                 type: "Feature",
-                properties: { dataBlock: feature.dataBlock, emergency: feature.emergency },
+                properties: { dataBlock: feature.dataBlock, isEmergency: feature.isEmergency },
                 geometry: {
                     type: "LineString",
                     coordinates: [

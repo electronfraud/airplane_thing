@@ -6,3 +6,8 @@ services:
     environment:
       RADIO_HOST: ${RADIO_HOST:-radio}
       RADIO_PORT: ${RADIO_PORT:-30002}
+      SWIM_URL: ${SWIM_URL}
+      SWIM_QUEUE: ${SWIM_QUEUE}
+      SWIM_USER: ${SWIM_USER}
+      SWIM_PASSWORD: ${SWIM_PASSWORD}
+      SWIM_VPN: ${SWIM_VPN}

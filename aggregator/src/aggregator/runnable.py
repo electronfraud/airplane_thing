@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import asyncio
 
-from aggregator.logging import log
+from aggregator.log import log
 
 
 class Runnable(ABC):
@@ -21,8 +21,11 @@ class Runnable(ABC):
         self._running = False
 
     async def run(self) -> None:
-        log(f"{self._name} started")
+        log(f"{self._name} starting")
         self._running = True
+        await self.setup()
+        log(f"{self._name} started")
+
         while self._running:
             try:
                 await self.step()
@@ -30,10 +33,9 @@ class Runnable(ABC):
                 if self._running:
                     raise
                 break
-        log(f"{self._name} stopped")
 
-    @abstractmethod
-    async def step(self) -> None: ...
+        await self.teardown()
+        log(f"{self._name} stopped")
 
     def stop(self) -> None:
         log(f"{self._name} stopping")
@@ -41,3 +43,12 @@ class Runnable(ABC):
 
     def is_running(self) -> bool:
         return self._running
+
+    @abstractmethod
+    async def step(self) -> None: ...
+
+    async def setup(self) -> None:
+        pass
+
+    async def teardown(self) -> None:
+        pass

@@ -2,7 +2,9 @@
 Generally useful stuff that doesn't fit anywhere else
 """
 
+import asyncio
 from collections.abc import Callable, Iterable
+import concurrent.futures
 import time
 
 
@@ -15,6 +17,32 @@ def maybe[T](dangerous: Callable[[], T]) -> T | None:
         return dangerous()
     except Exception:  # pylint: disable=broad-exception-caught
         return None
+
+
+async def _sleep_forever() -> None:
+    try:
+        while True:
+            await asyncio.sleep(1)
+    except asyncio.CancelledError:
+        pass
+
+
+async def as_asyncio[T](future: concurrent.futures.Future[T]) -> T:
+    """
+    Wraps a concurrent.futures.Future so that it can be used more naturally in an asyncio setting.
+    """
+    sleep_task = asyncio.create_task(_sleep_forever())
+    result: T | None = None
+
+    def callback(_future: concurrent.futures.Future[T]) -> None:
+        nonlocal result
+        sleep_task.cancel()
+        result = _future.result()
+
+    future.add_done_callback(callback)
+    await sleep_task
+
+    return result  # type: ignore
 
 
 class LeakyDictionary[K, V]:
@@ -34,7 +62,7 @@ class LeakyDictionary[K, V]:
         """
         Return the value for a key. If the item exists but has expired, raises KeyError as though the item didn't exist.
         """
-        from aggregator.logging import log  # pylint: disable=import-outside-toplevel
+        from aggregator.log import log  # pylint: disable=import-outside-toplevel
 
         timestamp, value = self._underlying[key]
         if time.time() - timestamp > self._expiry_secs:
@@ -64,7 +92,7 @@ class LeakyDictionary[K, V]:
         return True
 
     def values(self) -> Iterable[V]:
-        from aggregator.logging import log  # pylint: disable=import-outside-toplevel
+        from aggregator.log import log  # pylint: disable=import-outside-toplevel
 
         now = time.time()
         keys = list(self._underlying.keys())
@@ -81,6 +109,12 @@ class LeakyDictionary[K, V]:
                 result.append(value)
         self._underlying = dict(self._underlying)
         return result
+
+    def get(self, key: K) -> V | None:
+        try:
+            return self[key]
+        except KeyError:
+            return None
 
 
 class ExpiringValue[T]:

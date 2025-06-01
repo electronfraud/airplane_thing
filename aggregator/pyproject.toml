@@ -5,6 +5,7 @@ dependencies = [
     "asyncio",
     "bitstring",
     "pyModeS",
+    "solace-pubsubplus",
     "websockets"
 ]
 
@@ -26,6 +27,9 @@ target-version = ['py312', 'py313']
 
 [tool.pylint]
 ignore = ["build", "venv"]
+
+[tool.pylint.design]
+max-args = 6
 
 [tool.pylint.format]
 max-line-length = 120

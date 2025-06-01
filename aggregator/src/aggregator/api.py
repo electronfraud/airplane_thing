@@ -2,12 +2,11 @@ import asyncio
 from collections.abc import Awaitable, Iterable
 import json
 
-from websockets import ConnectionClosedOK
 import websockets
 from websockets.asyncio.server import serve, ServerConnection, Server as WebsocketsServer
 
 from aggregator import correlator
-from aggregator.logging import log
+from aggregator.log import log
 
 
 class Client:

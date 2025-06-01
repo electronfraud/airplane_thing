@@ -49,20 +49,24 @@ function dataBlock(aircraft: IAircraftReport): string {
 
 function targetType(aircraft: IAircraftReport): TargetType {
     if (typeof aircraft.squawk === "undefined") {
-        if (typeof aircraft.altitude === "number") {
-            return "uncorrelated-beacon";
-        } else {
-            return "uncorrelated-primary";
+        if (typeof aircraft.altitude === "undefined") {
+            return "no-alt-no-squawk";
         }
+        return "alt-no-squawk";
     }
-    if (aircraft.squawk.startsWith("120")) {
+    if (aircraft.squawk === "1200" || aircraft.squawk === "1201" || aircraft.squawk === "1202") {
         return "vfr";
     }
-    return "correlated-beacon";
+    return "squawk";
 }
 
 function isEmergency(aircraft: IAircraftReport): boolean {
-    return aircraft.squawk === "7500" || aircraft.squawk === "7600" || aircraft.squawk === "7700";
+    return (
+        aircraft.squawk === "1276" ||
+        aircraft.squawk === "7500" ||
+        aircraft.squawk === "7600" ||
+        aircraft.squawk === "7700"
+    );
 }
 
 export default class AggregatorClient {

@@ -5,7 +5,7 @@ import { cos, sin } from "./util";
 const ConsoleGreen = "#55ff99";
 const ConsoleRed = "#ff6644";
 
-export type TargetType = "vfr" | "correlated-beacon" | "uncorrelated-beacon" | "uncorrelated-primary";
+export type TargetType = "squawk" | "alt-no-squawk" | "no-alt-no-squawk" | "vfr";
 
 export interface IAircraftFeature {
     x: number;
@@ -31,18 +31,20 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
     for (const variation of variations) {
         ctx.strokeStyle = variation[1];
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(4, 0.5);
-        ctx.lineTo(14, 17.5);
+        // diamond
         // ctx.moveTo(9, 3);
         // ctx.lineTo(15, 9);
         // ctx.lineTo(9, 15);
         // ctx.lineTo(3, 9);
         // ctx.lineTo(9, 3);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(4, 0.5);
+        ctx.lineTo(14, 17.5);
         ctx.stroke();
         let symbol = await createImageBitmap(canvas);
-        map.addImage(`correlated-beacon-${variation[0]}symbol`, symbol);
+        map.addImage(`squawk-${variation[0]}symbol`, symbol);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
@@ -50,16 +52,7 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
         ctx.lineTo(4, 17.5);
         ctx.stroke();
         symbol = await createImageBitmap(canvas);
-        map.addImage(`uncorrelated-beacon-${variation[0]}symbol`, symbol);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(3.5, 2);
-        ctx.lineTo(9, 16);
-        ctx.lineTo(14.5, 2);
-        ctx.stroke();
-        symbol = await createImageBitmap(canvas);
-        map.addImage(`vfr-${variation[0]}symbol`, symbol);
+        map.addImage(`alt-no-squawk-${variation[0]}symbol`, symbol);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
@@ -69,7 +62,16 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
         ctx.lineTo(14, 9);
         ctx.stroke();
         symbol = await createImageBitmap(canvas);
-        map.addImage(`uncorrelated-primary-${variation[0]}symbol`, symbol);
+        map.addImage(`no-alt-no-squawk-${variation[0]}symbol`, symbol);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(3.5, 2);
+        ctx.lineTo(9, 16);
+        ctx.lineTo(14.5, 2);
+        ctx.stroke();
+        symbol = await createImageBitmap(canvas);
+        map.addImage(`vfr-${variation[0]}symbol`, symbol);
     }
 }
 

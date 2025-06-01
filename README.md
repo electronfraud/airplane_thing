@@ -49,11 +49,13 @@ make images
 The display is loosely based on real Air Traffic Control radar displays. Targets (aircraft) are depicted by symbols
 that vary depending on what kinds of information the system has received about them:
 
-- `/`: Target has an altitude and a transponder code.
-- `\`: Target has an altitude but no transponder code.
+"squawk" | "alt-no-squawk" | "no-alt-no-squawk" | "vfr";
+- `\`: Target has a transponder code other than 1200, 1201, or 1202. These aircraft are in contact with ATC and are
+  receiving radar services.
+- `/`: Target has altitude information but no transponder code information.
+- `V`: Target is squawking 1200, 1201, or 1202. These aircraft are "squawking VFR," meaning they are operating
+  under Visual Flight Rules and are not in contact with an ATC radar facility.
 - `+`: Target has neither altitude nor transponder code information.
-- `V`: Target's transponder code is 120x (where x is any number from zero to seven), i.e. it is VFR and not receiving
-  radar services.
 
 If a target has velocity information (ground speed and course), there will be a line extending out from the target. The
 tip of the line is where the aircraft will be in one minute if it maintains its present ground speed and course.
@@ -75,7 +77,7 @@ Climbing and descending aircraft will have an up or down arrow in this position.
 speed in knots. The example aircraft is moving at 400 knots (460 mph, 741 km/h).
 
 Note that the symbology communicates what kinds of information have been _received_, not necessarily the truth about
-the flights themselves. In other words, if airplane_thing hasn't received a transponder code for an aircraft, it
-doesn't necessarily mean the aircraft isn't squawking a code; it just means airplane_thing hasn't received and decoded
-a message containing a transponder code recently. This can happen for any number of reasons, most of which have to do
-with antenna performance.
+the flights themselves. For example, if airplane_thing hasn't received a transponder code for an aircraft, it doesn't
+necessarily mean the aircraft isn't squawking a code; it just means airplane_thing hasn't received and decoded a
+message containing a transponder code from that aircraft recently. This can happen for any number of reasons, most of
+which have to do with receiver performance.

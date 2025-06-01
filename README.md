@@ -2,6 +2,8 @@
 
 A complete software stack for tracking and mapping aircraft via Mode S and ADS-B.
 
+![Screenshot of airplane_thing tracking airplanes over Los Angeles](screenshot.png)
+
 ## Requirements
 
 - A Linux system

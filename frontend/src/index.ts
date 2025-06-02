@@ -34,6 +34,8 @@ class ZoomToFitControl {
 
         const icon = document.createElement("span");
         icon.className = "mapboxgl-ctrl-icon";
+        icon.ariaHidden = "true";
+        icon.title = "Zoom to fit all aircraft";
         button.appendChild(icon);
 
         return container;

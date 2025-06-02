@@ -62,11 +62,8 @@ class LeakyDictionary[K, V]:
         """
         Return the value for a key. If the item exists but has expired, raises KeyError as though the item didn't exist.
         """
-        from aggregator.log import log  # pylint: disable=import-outside-toplevel
-
         timestamp, value = self._underlying[key]
         if time.time() - timestamp > self._expiry_secs:
-            log(f"dropping {key}")
             del self._underlying[key]
             # Dictionary performance degrades over time when there are a lot of additions and deletions. Recreating it
             # gets it back into a good state.
@@ -92,8 +89,6 @@ class LeakyDictionary[K, V]:
         return True
 
     def values(self) -> Iterable[V]:
-        from aggregator.log import log  # pylint: disable=import-outside-toplevel
-
         now = time.time()
         keys = list(self._underlying.keys())
         result: list[V] = []
@@ -103,7 +98,6 @@ class LeakyDictionary[K, V]:
             except KeyError:
                 continue
             if now - timestamp > self._expiry_secs:
-                log(f"dropping {key}")
                 del self._underlying[key]
             else:
                 result.append(value)

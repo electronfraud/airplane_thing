@@ -87,10 +87,10 @@ export class HitBox {
         let left = anchor.x;
         // prettier-ignore
         switch (anchorType) {
-            case "top-left"    : top +=          8; left +=         9; break;
-            case "top-right"   : top +=          8; left -= width + 9; break;
-            case "bottom-right": top -= height + 8; left -= width + 9; break;
-            default            : top -= height + 8; left +=         9; break;
+            case "top-left"    : top +=          7; left +=         0; break;
+            case "top-right"   : top +=          7; left -= width + 0; break;
+            case "bottom-right": top -= height + 9; left -= width + 0; break;
+            default            : top -= height + 9; left +=         0; break;
         }
 
         return new HitBox(MaxHitBoxPriority - 1, icaoAddress, "data-block", top, left, height, width);
@@ -136,16 +136,20 @@ export default class Declutterer {
         const icaoAddresses: string[] = [];
 
         for (const feature of aircraftPositions) {
+            // note ICAO address
             const icaoAddress = feature.properties.icaoAddress;
-            const projected = this.map.project(feature.geometry.coordinates as LngLatLike);
-
             icaoAddresses.push(icaoAddress);
 
+            // cache projected position
+            const projected = this.map.project(feature.geometry.coordinates as LngLatLike);
             this.projectedPositions.push(projected);
+
+            // generate hit box for the icon
             this.iconHitBoxes.push(
                 new HitBox(MaxHitBoxPriority, icaoAddress, "icon", projected.y - 9, projected.x - 9, 18, 18)
             );
 
+            // generate hit box for the data block
             const dataBlock = feature.properties.dataBlock;
             feature.properties.dataBlockAnchor = this.preferredAnchor(feature.properties);
             if (typeof dataBlock === "string") {
@@ -157,8 +161,10 @@ export default class Declutterer {
             }
         }
 
+        // create convenience collection of all hit boxes
         this.allHitBoxes = this.iconHitBoxes.concat(this.dataBlockHitBoxes.filter((value) => !!value));
 
+        // remove preferred anchors for aircraft that aren't on the map anymore
         for (const key of Object.keys(this.preferredAnchors)) {
             if (ICAOAddressRE.test(key) && !icaoAddresses.includes(key)) {
                 // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -179,6 +185,9 @@ export default class Declutterer {
                 continue;
             }
 
+            // we have a data block that overlaps something. find a text anchor that results in no overlaps, or the
+            // text anchor with the lowest priority overlap. ties are broken by preferring bottom-left, top-left,
+            // top-right, and then bottom-right, in that order.
             const anchorCandidates: TextAnchor[] = ["bottom-left", "top-left", "top-right", "bottom-right"];
             let bestAnchor: TextAnchor = "bottom-left";
             let bestHitBox: HitBox = dataBlockHitBox;
@@ -203,10 +212,25 @@ export default class Declutterer {
                 }
             }
 
-            console.log(`changing ${dataBlockHitBox.icaoAddress} data block anchor to ${bestAnchor}`);
             this.aircraftPositions[i].properties.dataBlockAnchor = bestAnchor;
             this.preferredAnchors[dataBlockHitBox.icaoAddress] = bestAnchor;
             this.dataBlockHitBoxes[i] = bestHitBox;
+            this.allHitBoxes = this.iconHitBoxes.concat(this.dataBlockHitBoxes.filter((value) => !!value));
+        }
+        return;
+
+        // DEBUG: draw hit boxes on screen
+        for (const elem of document.getElementsByClassName("hit-box")) {
+            elem.remove();
+        }
+        for (const hitBox of this.allHitBoxes) {
+            const elem = document.createElement("div");
+            elem.className = "hit-box";
+            elem.setAttribute(
+                "style",
+                `position: absolute; border: 1px solid #ffff00; top: ${hitBox.top}px; left: ${hitBox.left}px; width: ${hitBox.width}px; height: ${hitBox.height}px`
+            );
+            document.body.appendChild(elem);
         }
     }
 

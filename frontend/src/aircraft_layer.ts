@@ -4,6 +4,7 @@ import { cos, sin } from "./util";
 import Declutterer, { TextAnchor } from "./declutter";
 
 const ConsoleGreen = "#55ff99";
+const ConsoleGreenDim = "#33995c";
 const ConsoleRed = "#ff6644";
 
 export type TargetType = "squawk" | "alt-no-squawk" | "no-alt-no-squawk" | "vfr";
@@ -129,24 +130,28 @@ export class AircraftLayer {
                     ],
                     "icon-allow-overlap": true,
                     "text-field": ["get", "dataBlock"],
-                    "text-anchor": ["coalesce", ["get", "dataBlockAnchor"], "bottom-left"],
+                    "text-anchor": ["get", "dataBlockAnchor"],
+                    // prettier-ignore
                     "text-offset": [
-                        "match",
-                        ["get", "dataBlockAnchor"],
-                        "bottom-right",
-                        [-0.75, -0.5],
-                        "top-left",
-                        [0.75, 0.5],
-                        "top-right",
-                        [-0.75, 0.5],
-                        [0.75, -0.5]
+                        "match", ["get", "dataBlockAnchor"],
+                        "bottom-right", [-0.1, -0.6],
+                        "top-left",     [ 0.1,  0.6],
+                        "top-right",    [-0.1,  0.6],
+                        /* default */   [ 0.1, -0.6]
                     ],
-                    "text-justify": "left",
+                    // prettier-ignore
+                    "text-justify": [
+                        "match", ["get", "dataBlockAnchor"],
+                        "bottom-right", "right",
+                        "top-left",     "left",
+                        "top-right",    "right",
+                        /* default */   "left"
+                    ],
                     "text-font": ["Roboto Mono Medium", "Arial Unicode MS Bold"],
                     "text-allow-overlap": true
                 },
                 paint: {
-                    "text-color": ["case", ["get", "isEmergency"], ConsoleRed, ConsoleGreen]
+                    "text-color": ["case", ["get", "isEmergency"], ConsoleRed, ConsoleGreenDim]
                 }
             });
 
@@ -221,6 +226,7 @@ export class AircraftLayer {
 
         // declutter labels
         this.declutterer.setFeatures(pointFeatures, vectorFeatures);
+        this.declutterer.declutterLabels();
         this.declutterer.declutterLabels();
 
         // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style

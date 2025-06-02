@@ -30,9 +30,9 @@ git clone --recursive https://github.com/electronfraud/airplane_thing.git
 cd airplane_thing
 ```
 5. Configure the Mapbox access token:
-  1. Sign up for a Mapbox account at https://www.mapbox.com/
-  2. Go to https://console.mapbox.com/account/access-tokens/ and copy your token.
-  3. Back in your copy of this repo, create a file in `frontend/src` called `token.ts` with the following contents:
+    1. Sign up for a Mapbox account at https://www.mapbox.com/
+    2. Go to https://console.mapbox.com/account/access-tokens/ and copy your token.
+    3. Back in your copy of this repo, create a file in `frontend/src` called `token.ts` with the following contents:
 ```
 export const MapboxToken = "paste-your-token-here";
 ```
@@ -53,22 +53,22 @@ aircraft type, assigned altitude, etc. The setup is a little complicated but wor
 
 1. Sign up for an account at https://portal.swim.faa.gov/.
 2. Create a subscription to Flight FIXM with the following filters:
-  1. Message type: Flight Amendment Information; all other fields set to ALL.
-  2. Message type: Flight Plan Information; all other fields set to ALL.
-  3. Message type: Flight Plan Update Information; all other fields set to ALL.
+    1. Message type: Flight Amendment Information; all other fields set to ALL.
+    2. Message type: Flight Plan Information; all other fields set to ALL.
+    3. Message type: Flight Plan Update Information; all other fields set to ALL.
 3. Go to the subscription's Details page and note the following information:
-  1. Connection username
-  2. Connection password
-  3. Queue name
-  4. JMS connection URL
-  5. Message VPN
+    1. Connection username
+    2. Connection password
+    3. Queue name
+    4. JMS connection URL
+    5. Message VPN
 4. Create a file in `aggregator` called `.env` with the following contents:
 ```
 SWIM_URL="url here"
 SWIM_QUEUE="queue name here"
 SWIM_USER="username here"
 SWIM_PASSWORD="password here"
-SWIM_VPN=""
+SWIM_VPN="vpn name here"
 ```
 4. If airplane_thing is running, restart it:
 ```

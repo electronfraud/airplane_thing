@@ -9,3 +9,19 @@ export function cos(degrees: number): number {
 export function sin(degrees: number): number {
     return Math.sin(radians(degrees));
 }
+
+export function longest(strings: string[]): string | undefined {
+    let maxIndex = -1;
+    let maxLength = -1;
+    for (let i = 0; i < strings.length; i++) {
+        const length = strings[i].length;
+        if (length > maxLength) {
+            maxIndex = i;
+            maxLength = length;
+        }
+    }
+    if (maxIndex === -1) {
+        return undefined;
+    }
+    return strings[maxIndex];
+}

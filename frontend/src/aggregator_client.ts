@@ -185,6 +185,7 @@ export default class AggregatorClient {
             const payload = JSON.parse(e.data as string) as IAircraftReport[];
             this.aircraftLayer.features = payload.map((aircraft) => {
                 return {
+                    icaoAddress: aircraft.icao_address,
                     x: aircraft.position[1],
                     y: aircraft.position[0],
                     groundSpeed: aircraft.ground_speed,

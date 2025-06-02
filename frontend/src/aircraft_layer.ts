@@ -1,6 +1,7 @@
 import { GeoJSONSource } from "mapbox-gl";
-import { Feature } from "geojson";
+import GeoJSON from "geojson";
 import { cos, sin } from "./util";
+import Declutterer, { TextAnchor } from "./declutter";
 
 const ConsoleGreen = "#55ff99";
 const ConsoleRed = "#ff6644";
@@ -8,11 +9,13 @@ const ConsoleRed = "#ff6644";
 export type TargetType = "squawk" | "alt-no-squawk" | "no-alt-no-squawk" | "vfr";
 
 export interface IAircraftFeature {
+    icaoAddress: string;
     x: number;
     y: number;
     course?: number;
     groundSpeed?: number;
     dataBlock?: string;
+    dataBlockAnchor?: TextAnchor;
     targetType: TargetType;
     isEmergency: boolean;
     hasFlightPlan: boolean;
@@ -91,10 +94,14 @@ export class AircraftLayer {
     private pointSourceId: string;
     private vectorSourceId: string;
 
+    private declutterer: Declutterer;
+
     constructor(id: string, map: mapboxgl.Map) {
         this.map = map;
         this.pointSourceId = `${id}-points-source`;
         this.vectorSourceId = `${id}-vectors-source`;
+
+        this.declutterer = new Declutterer(map);
 
         const that = this;
         this.map.on("styleimagemissing", (e) => {
@@ -122,8 +129,18 @@ export class AircraftLayer {
                     ],
                     "icon-allow-overlap": true,
                     "text-field": ["get", "dataBlock"],
-                    "text-anchor": "bottom-left",
-                    "text-offset": [0.75, -0.5],
+                    "text-anchor": ["coalesce", ["get", "dataBlockAnchor"], "bottom-left"],
+                    "text-offset": [
+                        "match",
+                        ["get", "dataBlockAnchor"],
+                        "bottom-right",
+                        [-0.75, -0.5],
+                        "top-left",
+                        [0.75, 0.5],
+                        "top-right",
+                        [-0.75, 0.5],
+                        [0.75, -0.5]
+                    ],
                     "text-justify": "left",
                     "text-font": ["Roboto Mono Medium", "Arial Unicode MS Bold"],
                     "text-allow-overlap": true
@@ -157,23 +174,15 @@ export class AircraftLayer {
         if (!points) {
             return;
         }
-        points.setData({
-            type: "FeatureCollection",
-            features: this.features.map((feature) => {
-                return {
-                    type: "Feature",
-                    properties: {
-                        dataBlock: feature.dataBlock,
-                        targetType: feature.targetType,
-                        isEmergency: feature.isEmergency,
-                        hasFlightPlan: feature.hasFlightPlan
-                    },
-                    geometry: {
-                        type: "Point",
-                        coordinates: [feature.x, feature.y]
-                    }
-                };
-            })
+        const pointFeatures: GeoJSON.Feature<GeoJSON.Point, IAircraftFeature>[] = this.features.map((feature) => {
+            return {
+                type: "Feature",
+                properties: feature,
+                geometry: {
+                    type: "Point",
+                    coordinates: [feature.x, feature.y]
+                }
+            };
         });
 
         // generate a line feature depicting one-minute DR position for each aircraft
@@ -181,7 +190,7 @@ export class AircraftLayer {
         if (!vectors) {
             return;
         }
-        const vectorFeatures = new Array<Feature>();
+        const vectorFeatures = new Array<GeoJSON.Feature<GeoJSON.LineString, IAircraftFeature>>();
         for (const feature of this.features) {
             if (typeof feature.groundSpeed !== "number" || typeof feature.course !== "number") {
                 continue;
@@ -192,16 +201,14 @@ export class AircraftLayer {
             if (knockoutDistance >= vectorDistance) {
                 continue;
             }
-
             const kox = (knockoutDistance * sin(feature.course)) / (60 * cos(feature.y)); // degrees longitude
             const koy = (knockoutDistance * cos(feature.course)) / 60; // degrees latitude
-
             const vx = (vectorDistance * sin(feature.course)) / (60 * cos(feature.y)); // degrees longitude
             const vy = (vectorDistance * cos(feature.course)) / 60; // degrees latitude
 
             vectorFeatures.push({
                 type: "Feature",
-                properties: { dataBlock: feature.dataBlock, isEmergency: feature.isEmergency },
+                properties: feature,
                 geometry: {
                     type: "LineString",
                     coordinates: [
@@ -211,9 +218,20 @@ export class AircraftLayer {
                 }
             });
         }
-        vectors.setData({
+
+        // declutter labels
+        this.declutterer.setFeatures(pointFeatures, vectorFeatures);
+        this.declutterer.declutterLabels();
+
+        // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+        (this.map.getSource(this.pointSourceId) as GeoJSONSource).setData({
             type: "FeatureCollection",
-            features: vectorFeatures
+            features: this.declutterer.aircraftPositions
+        });
+        // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+        (this.map.getSource(this.vectorSourceId) as GeoJSONSource).setData({
+            type: "FeatureCollection",
+            features: this.declutterer.velocityVectors
         });
     }
 }

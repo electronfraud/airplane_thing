@@ -18,7 +18,7 @@ from aggregator.util import as_asyncio
 
 
 @dataclass
-class FlightPlan:
+class Flight:
     icao_address: str | None
     callsign: str | None
     registration: str | None
@@ -56,7 +56,7 @@ class SWIMIngester(Runnable, MessageHandler):
     Ingests flight plan data from FAA SWIM.
     """
 
-    def __init__(self, out_queue: asyncio.Queue[FlightPlan], url: str, queue_name: str, username: str, password: str, vpn_name: str):
+    def __init__(self, out_queue: asyncio.Queue[Flight], url: str, queue_name: str, username: str, password: str, vpn_name: str):
         super().__init__()
 
         self._queue = out_queue
@@ -134,7 +134,7 @@ class SWIMIngester(Runnable, MessageHandler):
 
             # assigned_altitude = flight_tag.find("assignedAltitude/simple").text.strip()
             self._queue.put_nowait(
-                FlightPlan(
+                Flight(
                     icao_address=icao_address,
                     callsign=callsign,
                     registration=registration,

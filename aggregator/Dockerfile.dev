@@ -2,6 +2,7 @@ FROM python:3.13
 
 WORKDIR /app
 COPY . .
-RUN pip install --editable .
+RUN pip install .
+RUN pip install ".[dev]"
 
-CMD ["python", "-m", "aggregator"]
+CMD ["./tests/run.sh"]

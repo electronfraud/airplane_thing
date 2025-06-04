@@ -21,16 +21,15 @@ set. Accessing an attribute whose value has expired returns the sentinel value `
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-import time
 import types
 from typing import Any, cast
 
 
 class _ExpiredType(type):
-    def __repr__(self) -> str:
+    def __repr__(cls) -> str:
         return "Expired"
 
-    def __str__(self) -> str:
+    def __str__(cls) -> str:
         return "Expired"
 
 
@@ -65,12 +64,13 @@ def lifetimes(cls: type) -> type:
 
         # Store the field definition and install a getter and a setter.
         cls.__lifetimes_fields__[name] = default
-        setattr(cls, name, property(_getter(name), _setter(name)))
+        setattr(cls, name, property(_make_getter(name), _make_setter(name)))
 
     return cls
 
 
-def expires[T](days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0) -> T:  # type: ignore
+# pylint: disable=too-many-arguments
+def expires[T](*, days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0) -> T:  # type: ignore
     """
     This function is used to set the `timedelta` after which a property's value expires. It accepts the same arguments
     as `timedelta`.
@@ -112,13 +112,13 @@ def _expirations(obj: object) -> dict[str, datetime]:
         return value
 
 
-def _getter(name: str) -> Callable[[object], object | Expired]:
+def _make_getter(name: str) -> Callable[[object], object | Expired]:
     """
     Creates a getter for a property named `name` that returns the property's value if it hasn't expired, or `Expired`
     if it has.
     """
 
-    def get(obj: object) -> object | None:
+    def getter(obj: object) -> object | None:
         if _now() > _expirations(obj)[name]:
             return Expired
         try:
@@ -126,39 +126,16 @@ def _getter(name: str) -> Callable[[object], object | Expired]:
         except AttributeError:
             return None  # TODO: we should make it impossible to get here
 
-    return get
+    return getter
 
 
-def _setter(name: str) -> Callable[[object, Any], None]:
+def _make_setter(name: str) -> Callable[[object, Any], None]:
     """
     Creates a setter for a property named `name` that sets the property's value and refreshes its expiration time.
     """
 
-    def set(obj: object, value: Any) -> None:
+    def setter(obj: object, value: Any) -> None:
         _expirations(obj)[name] = _now() + getattr(obj, _FIELDS)[name].expires
         setattr(obj, _VALUE + name, value)
 
-    return set
-
-
-@lifetimes
-class Foo:
-    boo: float
-    narf: str | Expired = expires(seconds=1)
-    blat: int | Expired = expires(hours=6)
-
-
-def main():
-    foo = Foo()
-    foo.narf = "narf!"
-    foo.blat = 0
-    print(f"{type(foo)} {foo}")
-    print(f"{type(foo.narf)} {foo.narf}")
-    print(f"{type(foo.blat)} {foo.blat}")
-    time.sleep(2)
-    print(f"{type(foo.narf)} {foo.narf}")
-    print(f"{type(foo.blat)} {foo.blat}")
-
-
-if __name__ == "__main__":
-    main()
+    return setter

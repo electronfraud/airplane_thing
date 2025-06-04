@@ -21,3 +21,22 @@ def test_lifetimes():
     time.sleep(2.1)
     assert vs.position is Expired
     assert vs.speed is Expired
+
+def test_alternate_sentinel():
+    @lifetimes
+    class VehicleState:
+        position: tuple[float, float] | None = expires(seconds=1, sentinel=None)
+        speed: int | None = expires(seconds=3, sentinel=None)
+
+    vs = VehicleState()
+    vs.position = (0, 0)
+    vs.speed = 100
+
+    assert vs.position == (0, 0)
+    assert vs.speed == 100
+    time.sleep(1.1)
+    assert vs.position is None
+    assert vs.speed == 100
+    time.sleep(2.1)
+    assert vs.position is None
+    assert vs.speed is None

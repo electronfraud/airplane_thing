@@ -30,7 +30,7 @@ async def main() -> int:
             os.environ["SWIM_QUEUE"],
             os.environ["SWIM_USER"],
             os.environ["SWIM_PASSWORD"],
-            os.environ["SWIM_VPN"]
+            os.environ["SWIM_VPN"],
         )
     else:
         swim_ingester = None

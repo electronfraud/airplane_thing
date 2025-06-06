@@ -1,11 +1,13 @@
 import asyncio
 from collections.abc import Awaitable, Iterable
+import dataclasses
 import json
 
 import websockets
 from websockets.asyncio.server import serve, ServerConnection, Server as WebsocketsServer
 
-from aggregator import correlator
+from aggregator.model.json import dumps
+from aggregator.model.aircraft import Aircraft
 from aggregator.log import log
 
 
@@ -40,15 +42,15 @@ class Server:
             log("stopping")
             self._server.close()
 
-    async def update(self, aircraft: Iterable[correlator.Aircraft]) -> None:
-        message = json.dumps([a.as_dict() for a in aircraft if a.position])
+    async def update(self, aircraft: list[Aircraft]) -> None:
+        message = dumps([a for a in aircraft if a.position is not None])
         futures: list[Awaitable[None]] = []
         for ws in self._clients:
             try:
                 futures.append(ws.send(message))
-            except websockets.WebSocketException:
-                pass
+            except websockets.WebSocketException as exc:
+                print(exc)
         try:
             await asyncio.gather(*futures)
-        except websockets.WebSocketException:
-            pass
+        except websockets.WebSocketException as exc:
+            print(exc)

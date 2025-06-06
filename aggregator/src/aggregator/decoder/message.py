@@ -9,6 +9,7 @@ from typing import Self
 import pyModeS
 
 from aggregator.decoder.position import PositionDisambiguator
+from aggregator.model.icao_address import ICAOAddress
 
 
 class DecodingError(ValueError):
@@ -24,7 +25,7 @@ class ModeSMessage:
     an aircraft as part of its registration.
     """
 
-    icao_address: str
+    icao_address: ICAOAddress
 
 
 @dataclass
@@ -52,7 +53,10 @@ class SurveillanceReplyIdentityCodeMessage(ModeSMessage):
     @classmethod
     def from_hex(cls, msg_hex: str) -> Self:
         # TODO: flight status, downlink request?, utility message?
-        return cls(_icao_address(msg_hex), pyModeS.idcode(msg_hex))
+        try:
+            return cls(_icao_address(msg_hex), pyModeS.idcode(msg_hex))
+        except RuntimeError as exc:
+            raise DecodingError(f"pyModeS exception: {exc}") from exc
 
 
 class WakeCategory(Enum):
@@ -182,8 +186,8 @@ class CommBReply(ModeSMessage):
         return result
 
 
-def _icao_address(msg_hex: str) -> str:
-    result = pyModeS.icao(msg_hex)
-    if not result:
+def _icao_address(msg_hex: str) -> ICAOAddress:
+    raw = pyModeS.icao(msg_hex)
+    if not raw:
         raise DecodingError(f"failed to extract ICAO address from {msg_hex}")
-    return result.upper()
+    return ICAOAddress(raw)

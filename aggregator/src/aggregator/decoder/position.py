@@ -8,6 +8,7 @@ import time
 
 import pyModeS
 
+from aggregator.model.icao_address import ICAOAddress
 from aggregator.util import LeakyDictionary
 
 
@@ -20,13 +21,13 @@ class PositionDisambiguator:
         # requirement that prior position references for airborne aircraft be within 180 nautical miles of the
         # aircraft's presumed current position, and an arbitrarily chosen maximum speed of 1000 knots. I.e.,
         # 180 nmi / 1000 kts = 648 s.
-        self._prior_positions = LeakyDictionary[str, tuple[float, float]](648)
+        self._prior_positions = LeakyDictionary[ICAOAddress, tuple[float, float]](648)
         # Prior Compact Position Reporting (CPR) messages, used to disambiguate position data in messages from aircraft
         # whose position we haven't yet disambiguated. These dictionaries are ICAO address: (timestamp, hex message);
         # the first dictionary is for even messages and the second is for odd. The 10-second expiration is convention.
-        self._prior_cpr_msgs = (LeakyDictionary[str, tuple[int, str]](10), LeakyDictionary[str, tuple[int, str]](10))
+        self._prior_cpr_msgs = (LeakyDictionary[ICAOAddress, tuple[int, str]](10), LeakyDictionary[ICAOAddress, tuple[int, str]](10))
 
-    def locate(self, icao_address: str, msg_hex: str) -> tuple[float, float] | None:
+    def locate(self, icao_address: ICAOAddress, msg_hex: str) -> tuple[float, float] | None:
         """
         Try to extract an unambiguous position from a Mode S Extended Squitter (ADS-B) message.
         """
@@ -42,7 +43,7 @@ class PositionDisambiguator:
 
         return position
 
-    def _position_from_cpr_pair(self, icao_address: str, msg_hex: str) -> tuple[float, float] | None:
+    def _position_from_cpr_pair(self, icao_address: ICAOAddress, msg_hex: str) -> tuple[float, float] | None:
         timestamp = int(round(time.time()))
         odd_even_flag = pyModeS.adsb.oe_flag(msg_hex)
 

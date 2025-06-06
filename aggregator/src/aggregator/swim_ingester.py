@@ -13,42 +13,10 @@ from solace.messaging.receiver.persistent_message_receiver import PersistentMess
 from solace.messaging.resources.queue import Queue  # type: ignore
 
 from aggregator.log import log
+from aggregator.model.flight import Flight
+from aggregator.model.icao_address import ICAOAddress
 from aggregator.runnable import Runnable
 from aggregator.util import as_asyncio
-
-
-@dataclass
-class Flight:
-    icao_address: str | None
-    callsign: str | None
-    registration: str | None
-    icao_type: str
-    wake_category: str | None
-    cid: str
-    departure: str
-    route: str
-    arrival: str
-    assigned_altitude: int | None
-
-    def as_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {
-            "icao_type": self.icao_type,
-            "cid": self.cid,
-            "departure": self.departure,
-            "route": self.route,
-            "arrival": self.arrival
-        }
-        if self.icao_address:
-            result["icao_address"] = self.icao_address
-        if self.callsign:
-            result["callsign"] = self.callsign
-        if self.registration:
-            result["registration"] = self.registration
-        if self.wake_category:
-            result["wake_category"] = self.wake_category
-        if self.assigned_altitude:
-            result["assigned_altitude"] = self.assigned_altitude
-        return result
 
 
 class SWIMIngester(Runnable, MessageHandler):
@@ -56,7 +24,9 @@ class SWIMIngester(Runnable, MessageHandler):
     Ingests flight plan data from FAA SWIM.
     """
 
-    def __init__(self, out_queue: asyncio.Queue[Flight], url: str, queue_name: str, username: str, password: str, vpn_name: str):
+    def __init__(
+        self, out_queue: asyncio.Queue[Flight], url: str, queue_name: str, username: str, password: str, vpn_name: str
+    ):
         super().__init__()
 
         self._queue = out_queue
@@ -127,7 +97,8 @@ class SWIMIngester(Runnable, MessageHandler):
                 continue
 
             icao_address = aircraft_desc_tag.get("aircraftAddress", "").upper() or None
-            callsign = (flight_tag.find("flightIdentification") or {}).get("aircraftIdentification")
+            flight_id_tag = flight_tag.find("flightIdentification")
+            callsign = None if flight_id_tag is None else flight_id_tag.get("aircraftIdentification")
             registration = aircraft_desc_tag.get("registration")
             if not (icao_address or callsign or registration):
                 continue
@@ -135,18 +106,19 @@ class SWIMIngester(Runnable, MessageHandler):
             # assigned_altitude = flight_tag.find("assignedAltitude/simple").text.strip()
             self._queue.put_nowait(
                 Flight(
-                    icao_address=icao_address,
+                    icao_address=ICAOAddress(icao_address) if icao_address else None,
                     callsign=callsign,
                     registration=registration,
-                    icao_type=aircraft_desc_tag.find("aircraftType/icaoModelIdentifier").text.strip(), # type: ignore
+                    icao_type=aircraft_desc_tag.find("aircraftType/icaoModelIdentifier").text.strip(),  # type: ignore
                     wake_category=aircraft_desc_tag.get("wakeTurbulence"),
-                    cid=flight_tag.find("flightIdentification").get("computerId"), # type: ignore
-                    departure=flight_tag.find("departure").get("departurePoint"), # type: ignore
-                    route=flight_tag.find("agreed/route").get("nasRouteText"), # type: ignore
-                    arrival=flight_tag.find("arrival").get("arrivalPoint"), # type: ignore
-                    assigned_altitude=_assigned_altitude(flight_tag)
+                    cid=flight_tag.find("flightIdentification").get("computerId"),  # type: ignore
+                    departure=flight_tag.find("departure").get("departurePoint"),  # type: ignore
+                    route=flight_tag.find("agreed/route").get("nasRouteText"),  # type: ignore
+                    arrival=flight_tag.find("arrival").get("arrivalPoint"),  # type: ignore
+                    assigned_cruise_altitude=_assigned_altitude(flight_tag),
                 )
             )
+
 
 def _assigned_altitude(flight_tag: ElementTree.Element) -> int | None:
     simple_tag = flight_tag.find("assignedAltitude/simple")

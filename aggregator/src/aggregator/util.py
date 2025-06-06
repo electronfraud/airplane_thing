@@ -6,6 +6,7 @@ import asyncio
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import time
+from typing import Any
 
 
 def maybe[T](dangerous: Callable[[], T]) -> T | None:
@@ -40,7 +41,10 @@ async def as_asyncio[T](future: concurrent.futures.Future[T]) -> T:
         result = _future.result()
 
     future.add_done_callback(callback)
-    await sleep_task
+    try:
+        await sleep_task
+    except asyncio.CancelledError:
+        pass
 
     return result  # type: ignore
 

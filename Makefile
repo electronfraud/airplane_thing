@@ -2,6 +2,10 @@ images:
 	docker compose --profile radio build
 .PHONY: clean
 
+test:
+	cd aggregator && $(MAKE) test
+.PHONY: test
+
 clean:
 	find . "(" -name build        \
 	       -o  -name "*.egg-info" \

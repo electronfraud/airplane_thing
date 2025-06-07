@@ -77,7 +77,12 @@ class SWIMIngester(Runnable, MessageHandler):
 
     def on_message(self, message: InboundMessage) -> None:
         raw_xml = message.get_payload_as_string() or ""
-        xml_root = ElementTree.fromstring(raw_xml)
+        try:
+            xml_root = ElementTree.fromstring(raw_xml)
+        except ElementTree.ParseError as exc:
+            log(f"XML parse error: {exc}")
+            return
+
         if xml_root.tag != "{http://www.faa.aero/nas/3.0}MessageCollection":
             log(f"unexpected root element: {xml_root.tag}")
             log(raw_xml)

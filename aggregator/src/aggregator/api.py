@@ -1,7 +1,5 @@
 import asyncio
 from collections.abc import Awaitable, Iterable
-import dataclasses
-import json
 
 import websockets
 from websockets.asyncio.server import serve, ServerConnection, Server as WebsocketsServer
@@ -42,7 +40,7 @@ class Server:
             log("stopping")
             self._server.close()
 
-    async def update(self, aircraft: list[Aircraft]) -> None:
+    async def update(self, aircraft: Iterable[Aircraft]) -> None:
         message = dumps([a for a in aircraft if a.position is not None])
         futures: list[Awaitable[None]] = []
         for ws in self._clients:

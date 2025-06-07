@@ -1,7 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-import os
-from typing import Any
+from typing import cast
 from xml.etree import ElementTree
 
 from solace.messaging.config.transport_security_strategy import TLS  # type: ignore
@@ -19,29 +18,36 @@ from aggregator.runnable import Runnable
 from aggregator.util import as_asyncio
 
 
+@dataclass
+class SWIMIngesterConfig:
+    url: str
+    queue_name: str
+    username: str
+    password: str
+    vpn_name: str
+
+
 class SWIMIngester(Runnable, MessageHandler):
     """
     Ingests flight plan data from FAA SWIM.
     """
 
-    def __init__(
-        self, out_queue: asyncio.Queue[Flight], url: str, queue_name: str, username: str, password: str, vpn_name: str
-    ):
+    def __init__(self, out_queue: asyncio.Queue[Flight], config: SWIMIngesterConfig):
         super().__init__()
 
         self._queue = out_queue
-        self._url = url
-        self._queue_name = queue_name
+        self._url = config.url
+        self._queue_name = config.queue_name
         self._receiver: PersistentMessageReceiver | None = None
 
         self._messaging_service = (
             MessagingService.builder()
             .from_properties(  # type: ignore
                 {
-                    "solace.messaging.transport.host": url,
-                    "solace.messaging.service.vpn-name": vpn_name,
-                    "solace.messaging.authentication.scheme.basic.username": username,
-                    "solace.messaging.authentication.scheme.basic.password": password,
+                    "solace.messaging.transport.host": config.url,
+                    "solace.messaging.service.vpn-name": config.vpn_name,
+                    "solace.messaging.authentication.scheme.basic.username": config.username,
+                    "solace.messaging.authentication.scheme.basic.password": config.password,
                 }
             )
             .with_reconnection_retry_strategy(RetryStrategy.forever_retry(1000))
@@ -84,7 +90,7 @@ class SWIMIngester(Runnable, MessageHandler):
                 log(raw_xml)
                 continue
             flight_tag = message_tag[0]
-            flight_status = flight_tag.find("flightStatus").get("fdpsFlightStatus")
+            flight_status = cast(ElementTree.Element[str], flight_tag.find("flightStatus")).get("fdpsFlightStatus")
             if flight_status in ("COMPLETED", "DROPPED"):
                 log("interesting flight status")
                 log(raw_xml)

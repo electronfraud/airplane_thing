@@ -6,7 +6,6 @@ import asyncio
 from collections.abc import Callable, Iterable
 import concurrent.futures
 import time
-from typing import Any
 
 
 def maybe[T](dangerous: Callable[[], T]) -> T | None:

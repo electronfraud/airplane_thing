@@ -9,6 +9,7 @@ import time
 import pyModeS
 
 from aggregator.model.icao_address import ICAOAddress
+from aggregator.model.position import Position
 from aggregator.util import LeakyDictionary
 
 
@@ -21,29 +22,34 @@ class PositionDisambiguator:
         # requirement that prior position references for airborne aircraft be within 180 nautical miles of the
         # aircraft's presumed current position, and an arbitrarily chosen maximum speed of 1000 knots. I.e.,
         # 180 nmi / 1000 kts = 648 s.
-        self._prior_positions = LeakyDictionary[ICAOAddress, tuple[float, float]](648)
+        self._prior_positions = LeakyDictionary[ICAOAddress, Position](648)
         # Prior Compact Position Reporting (CPR) messages, used to disambiguate position data in messages from aircraft
         # whose position we haven't yet disambiguated. These dictionaries are ICAO address: (timestamp, hex message);
         # the first dictionary is for even messages and the second is for odd. The 10-second expiration is convention.
-        self._prior_cpr_msgs = (LeakyDictionary[ICAOAddress, tuple[int, str]](10), LeakyDictionary[ICAOAddress, tuple[int, str]](10))
+        self._prior_cpr_msgs = (
+            LeakyDictionary[ICAOAddress, tuple[int, str]](10),
+            LeakyDictionary[ICAOAddress, tuple[int, str]](10),
+        )
 
-    def locate(self, icao_address: ICAOAddress, msg_hex: str) -> tuple[float, float] | None:
+    def locate(self, icao_address: ICAOAddress, msg_hex: str) -> Position | None:
         """
         Try to extract an unambiguous position from a Mode S Extended Squitter (ADS-B) message.
         """
         try:
-            lat_ref, lon_ref = self._prior_positions[icao_address]
+            ref_pos = self._prior_positions[icao_address]
         except KeyError:
             position = self._position_from_cpr_pair(icao_address, msg_hex)
         else:
-            position = pyModeS.adsb.position_with_ref(msg_hex, lat_ref, lon_ref)
+            position = Position.from_lat_lon(
+                pyModeS.adsb.position_with_ref(msg_hex, ref_pos.latitude, ref_pos.longitude)
+            )
 
         if position is not None:
             self._prior_positions[icao_address] = position
 
         return position
 
-    def _position_from_cpr_pair(self, icao_address: ICAOAddress, msg_hex: str) -> tuple[float, float] | None:
+    def _position_from_cpr_pair(self, icao_address: ICAOAddress, msg_hex: str) -> Position | None:
         timestamp = int(round(time.time()))
         odd_even_flag = pyModeS.adsb.oe_flag(msg_hex)
 
@@ -61,10 +67,10 @@ class PositionDisambiguator:
             t0, t1 = prior_timestamp, timestamp
 
         try:
-            position = pyModeS.adsb.position(msg0, msg1, t0, t1, self._receiver_latitude, self._receiver_longitude)
+            lat_lon = pyModeS.adsb.position(msg0, msg1, t0, t1, self._receiver_latitude, self._receiver_longitude)
         except RuntimeError as exc:
             from aggregator.decoder.message import DecodingError  # pylint: disable=import-outside-toplevel
 
             raise DecodingError("can't decode surface position without reference position") from exc
 
-        return position
+        return Position.from_lat_lon(lat_lon) if lat_lon is not None else None

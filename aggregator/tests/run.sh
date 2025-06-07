@@ -19,7 +19,7 @@ stage() {
 
 cd -- "$(dirname -- $(dirname -- "${BASH_SOURCE[0]}"))"
 
-stage BLACK "black --verbose --check ."
+stage BLACK "black --check ."
 stage PYLINT "pylint ."
 stage PYRIGHT pyright
 stage PYRIGHT-VERIFYTYPES "pyright --verifytypes aggregator --ignoreexternal"

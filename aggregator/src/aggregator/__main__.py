@@ -12,7 +12,7 @@ from aggregator.correlator import Correlator
 from aggregator.decoder import Decoder
 from aggregator.log import log
 from aggregator.mode_s_ingester import ModeSIngester
-from aggregator.swim_ingester import SWIMIngester
+from aggregator.swim_ingester import SWIMIngester, SWIMIngesterConfig
 
 
 async def main() -> int:
@@ -26,11 +26,13 @@ async def main() -> int:
     if os.environ.get("SWIM_URL"):
         swim_ingester = SWIMIngester(
             correlator.in_queue,  # type: ignore
-            os.environ["SWIM_URL"],
-            os.environ["SWIM_QUEUE"],
-            os.environ["SWIM_USER"],
-            os.environ["SWIM_PASSWORD"],
-            os.environ["SWIM_VPN"],
+            SWIMIngesterConfig(
+                os.environ["SWIM_URL"],
+                os.environ["SWIM_QUEUE"],
+                os.environ["SWIM_USER"],
+                os.environ["SWIM_PASSWORD"],
+                os.environ["SWIM_VPN"],
+            ),
         )
     else:
         swim_ingester = None

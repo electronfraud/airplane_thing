@@ -32,3 +32,7 @@ class Aircraft:
 
     flight:         Flight   | None = None
     # fmt:on
+
+    def __post_init__(self) -> None:
+        if self.callsign is None and self.flight is not None:
+            self.callsign = self.flight.callsign

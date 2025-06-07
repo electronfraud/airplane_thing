@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Self
 
 
 @dataclass
@@ -9,3 +10,7 @@ class Position:
 
     longitude: float
     latitude: float
+
+    @classmethod
+    def from_lat_lon(cls, position: tuple[float, float]) -> Self:
+        return cls(position[1], position[0])

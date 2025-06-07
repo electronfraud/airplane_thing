@@ -2,6 +2,7 @@
 These are the objects returned by Decoder's `decode` method, and the exception it raises when decoding fails.
 """
 
+from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 from typing import Self
@@ -10,6 +11,7 @@ import pyModeS
 
 from aggregator.decoder.position import PositionDisambiguator
 from aggregator.model.icao_address import ICAOAddress
+from aggregator.model.position import Position
 
 
 class DecodingError(ValueError):
@@ -19,7 +21,7 @@ class DecodingError(ValueError):
 
 
 @dataclass
-class ModeSMessage:
+class ModeSMessage(ABC):
     """
     Base class for all decoded messages. Every message has an ICAO address, a unique 24-bit address that is assigned to
     an aircraft as part of its registration.
@@ -113,7 +115,7 @@ class ADSBAirbornePositionMessage(ModeSMessage):
 
     altitude: int
     altitude_type: AltitudeType
-    position: tuple[float, float] | None
+    position: Position | None
 
     @classmethod
     def from_hex(cls, msg_hex: str, position_disambiguator: PositionDisambiguator) -> Self:

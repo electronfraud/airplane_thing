@@ -23,8 +23,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
 
-def limited_lifetime_field[T](
-    *, days=0, seconds=0, microseconds=0, milliseconds=0, minutes=0, hours=0, weeks=0
+def limited_lifetime_field[T](  # pylint: disable=too-many-arguments
+    *,
+    days: int | float = 0,
+    seconds: int | float = 0,
+    microseconds: int | float = 0,
+    milliseconds: int | float = 0,
+    minutes: int | float = 0,
+    hours: int | float = 0,
+    weeks: int | float = 0,
 ) -> T:  # type: ignore
     return cast(
         T,
@@ -48,7 +55,7 @@ class _LimitedLifetimeDescriptor:
         self._expiration = None
 
     def __set_name__(self, _, name: str) -> None:
-        self._name = "_" + name
+        self._name = "_" + name  # pylint: disable=attribute-defined-outside-init
 
     def __get__(self, obj: object, _):
         if obj is None:

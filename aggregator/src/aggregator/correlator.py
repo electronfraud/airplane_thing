@@ -24,7 +24,7 @@ from aggregator.model.aircraft import Aircraft
 from aggregator.model.flight import Flight
 from aggregator.model.icao_address import ICAOAddress
 from aggregator.runnable import Runnable
-from aggregator.util import LeakyDictionary, maybe
+from aggregator.util import LeakyDictionary
 
 
 class Correlator(Runnable):
@@ -51,8 +51,7 @@ class Correlator(Runnable):
         try:
             aircraft = self.aircraft[message.icao_address]
         except KeyError:
-            flight = self.flights.get(message.icao_address)
-            aircraft = Aircraft(message.icao_address, callsign=maybe(lambda: aircraft.flight.callsign), flight=flight)
+            aircraft = Aircraft(message.icao_address, flight=self.flights.get(message.icao_address))
             self.aircraft[message.icao_address] = aircraft
 
         match message:

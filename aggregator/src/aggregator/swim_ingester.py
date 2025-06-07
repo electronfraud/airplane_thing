@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+import traceback
 from typing import cast
 from xml.etree import ElementTree
 
@@ -76,6 +77,15 @@ class SWIMIngester(Runnable, MessageHandler):
         await as_asyncio(self._receiver.terminate_async())  # type: ignore
 
     def on_message(self, message: InboundMessage) -> None:
+        # Solace "helpfully" catches all exceptions raised in callbacks and prints terribly unhelpful messages, so we
+        # have to catch and print the information we need ourselves.
+        try:
+            self._on_message(message)
+        except Exception as exc:
+            for line in traceback.format_exception(exc):
+                log(line)
+
+    def _on_message(self, message: InboundMessage) -> None:
         raw_xml = message.get_payload_as_string() or ""
         try:
             xml_root = ElementTree.fromstring(raw_xml)
@@ -95,7 +105,7 @@ class SWIMIngester(Runnable, MessageHandler):
                 log(raw_xml)
                 continue
             flight_tag = message_tag[0]
-            flight_status = cast(ElementTree.Element[str], flight_tag.find("flightStatus")).get("fdpsFlightStatus")
+            flight_status = cast(ElementTree.Element, flight_tag.find("flightStatus")).get("fdpsFlightStatus")
             if flight_status in ("COMPLETED", "DROPPED"):
                 log("interesting flight status")
                 log(raw_xml)

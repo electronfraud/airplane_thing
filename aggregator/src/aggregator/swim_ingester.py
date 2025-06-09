@@ -1,9 +1,9 @@
 import asyncio
 from dataclasses import dataclass
 import traceback
-from typing import cast
-from xml.etree import ElementTree
+from typing import Any, cast
 
+from lxml import etree
 from solace.messaging.config.transport_security_strategy import TLS  # type: ignore
 from solace.messaging.config.retry_strategy import RetryStrategy  # type: ignore
 from solace.messaging.messaging_service import MessagingService  # type: ignore
@@ -17,6 +17,12 @@ from aggregator.model.flight import Flight
 from aggregator.model.icao_address import ICAOAddress
 from aggregator.runnable import Runnable
 from aggregator.util import as_asyncio
+
+
+_NAS30_URI = "http://www.faa.aero/nas/3.0"
+_NAS30 = "{" + _NAS30_URI + "}"
+_XSI_URI = "http://www.w3.org/2001/XMLSchema-instance"
+_XSI = "{" + _XSI_URI + "}"
 
 
 @dataclass
@@ -81,68 +87,66 @@ class SWIMIngester(Runnable, MessageHandler):
         # have to catch and print the information we need ourselves.
         try:
             self._on_message(message)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             for line in traceback.format_exception(exc):
                 log(line)
 
     def _on_message(self, message: InboundMessage) -> None:
-        raw_xml = message.get_payload_as_string() or ""
+        self._receiver.ack(message)
+
+        raw_xml = bytes(message.get_payload_as_bytes() or b"")
         try:
-            xml_root = ElementTree.fromstring(raw_xml)
-        except ElementTree.ParseError as exc:
-            log(f"XML parse error: {exc}")
+            root = cast(etree._Element, etree.fromstring(raw_xml))
+        except etree.XMLSyntaxError as exc:
+            log(f"XML syntax error: {exc}")
             return
 
-        if xml_root.tag != "{http://www.faa.aero/nas/3.0}MessageCollection":
-            log(f"unexpected root element: {xml_root.tag}")
-            log(raw_xml)
+        assert root.tag == f"{_NAS30}MessageCollection"
+        assert len(root) == 1
+        assert root[0].tag == "message"
+        assert len(root[0]) == 1
+
+        flight_tag = root[0][0]
+
+        assert flight_tag.tag == "flight"
+        nas30_prefix = {v: k for k, v in root.nsmap.items()}[_NAS30_URI]
+        assert flight_tag.get(f"{_XSI}type") == f"{nas30_prefix}:NasFlightType"
+
+        if flight_tag.find("flightStatus").get("fdpsFlightStatus") != "ACTIVE":
             return
 
-        for message_tag in xml_root:
-            message_type = message_tag.get("{http://www.w3.org/2001/XMLSchema-instance}type")
-            if message_type != "ns5:FlightMessageType":
-                log(f"unexpected message type: {message_type}")
-                log(raw_xml)
-                continue
-            flight_tag = message_tag[0]
-            flight_status = cast(ElementTree.Element, flight_tag.find("flightStatus")).get("fdpsFlightStatus")
-            if flight_status in ("COMPLETED", "DROPPED"):
-                log("interesting flight status")
-                log(raw_xml)
-            if flight_status != "ACTIVE":  # type: ignore
-                continue
+        aircraft_desc_tag = flight_tag.find("aircraftDescription")
+        flight_id_tag = flight_tag.find("flightIdentification")
 
-            aircraft_desc_tag = flight_tag.find("aircraftDescription")
-            if aircraft_desc_tag is None:
-                log("schema violation")
-                continue
+        icao_address = aircraft_desc_tag.get("aircraftAddress")
+        callsign = flight_id_tag.get("aircraftIdentification")
+        registration = aircraft_desc_tag.get("registration")
 
-            icao_address = aircraft_desc_tag.get("aircraftAddress", "").upper() or None
-            flight_id_tag = flight_tag.find("flightIdentification")
-            callsign = None if flight_id_tag is None else flight_id_tag.get("aircraftIdentification")
-            registration = aircraft_desc_tag.get("registration")
-            if not (icao_address or callsign or registration):
-                continue
+        if not (icao_address or callsign or registration):
+            return
 
-            # assigned_altitude = flight_tag.find("assignedAltitude/simple").text.strip()
+        try:
             self._queue.put_nowait(
                 Flight(
                     icao_address=ICAOAddress(icao_address) if icao_address else None,
                     callsign=callsign,
                     registration=registration,
-                    icao_type=aircraft_desc_tag.find("aircraftType/icaoModelIdentifier").text.strip(),  # type: ignore
+                    icao_type=aircraft_desc_tag.find("aircraftType/icaoModelIdentifier").text.strip(),
                     wake_category=aircraft_desc_tag.get("wakeTurbulence"),
-                    cid=flight_tag.find("flightIdentification").get("computerId"),  # type: ignore
-                    departure=flight_tag.find("departure").get("departurePoint"),  # type: ignore
-                    route=flight_tag.find("agreed/route").get("nasRouteText"),  # type: ignore
-                    arrival=flight_tag.find("arrival").get("arrivalPoint"),  # type: ignore
-                    assigned_cruise_altitude=_assigned_altitude(flight_tag),
+                    cid=flight_id_tag.get("computerId"),
+                    departure=flight_tag.find("departure").get("departurePoint"),
+                    route=flight_tag.find("agreed/route").get("nasRouteText"),
+                    arrival=flight_tag.find("arrival").get("arrivalPoint"),
+                    assigned_cruise_altitude=_assigned_cruise_altitude(flight_tag),
                 )
             )
+        except asyncio.QueueShutDown:
+            # If we get here this means the system is performing a graceful shutdown.
+            pass
 
 
-def _assigned_altitude(flight_tag: ElementTree.Element) -> int | None:
+def _assigned_cruise_altitude(flight_tag: Any) -> int | None:
     simple_tag = flight_tag.find("assignedAltitude/simple")
     if simple_tag is None:
         return None
-    return int((simple_tag.text or "").strip().removesuffix(".0"))
+    return int(simple_tag.text.strip().removesuffix(".0"))

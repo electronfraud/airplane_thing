@@ -3,21 +3,16 @@ These are the objects returned by Decoder's `decode` method, and the exception i
 """
 
 from abc import ABC
-from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
+from aggregator.decoder.decoder import DecodingError
+from aggregator.decoder.position_state import PositionState
 import pyModeS
 
 from aggregator.model.icao_address import ICAOAddress
 from aggregator.model.position import Position
-
-
-class DecodingError(ValueError):
-    """
-    Exception raised for any failure to decode a Mode S message.
-    """
 
 
 @dataclass
@@ -118,7 +113,7 @@ class ADSBAirbornePositionMessage(ModeSMessage):
     position: Position | None
 
     @classmethod
-    def from_hex(cls, msg_hex: str, position_disambiguator: Callable[[ICAOAddress, str], Position | None]) -> Self:
+    def from_hex(cls, msg_hex: str, position_state: PositionState) -> Self:
         # TODO: surveillance status, single antenna flag, time?
         altitude = pyModeS.adsb.altitude(msg_hex)
         type_code = pyModeS.adsb.typecode(msg_hex)
@@ -129,7 +124,7 @@ class ADSBAirbornePositionMessage(ModeSMessage):
             icao_address,
             int(round(altitude)),
             AltitudeType.BARO_PRESSURE if type_code < 19 else AltitudeType.GNSS,  # type: ignore
-            position_disambiguator(icao_address, msg_hex),
+            position_state.locate(icao_address, msg_hex),
         )
 
 

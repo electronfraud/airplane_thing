@@ -6,11 +6,9 @@ from aggregator.log import log
 
 class Runnable(ABC):
     """
-    Implements an asynchronous "run forever" loop. The loop begins when `run` is awaited and can be stopped by calling
-    `stop`. Subclasses implement `step`, which is awaited on each loop cycle.
-
-    As a convenience, if `step` raises asyncio.queues.QueueShutDown after `stop` has been called, Runnable assumes the
-    exception is part of an orderly shutdown and ignores it. `run` will then exit normally.
+    Runnable implements an asynchronous "run until told to stop" loop. The loop begins when `run` is awaited and can be
+    stopped by calling `stop`. Subclasses implement `step`, which is awaited on each loop cycle. Subclasses can also
+    implement `setup` and/or `teardown` if they need to do any pre- or post-loop work.
     """
 
     def __init__(self, name: str | None = None):
@@ -27,12 +25,7 @@ class Runnable(ABC):
         log(f"{self._name} started")
 
         while self._running:
-            try:
-                await self.step()
-            except asyncio.queues.QueueShutDown:
-                if self._running:
-                    raise
-                break
+            await self.step()
 
         await self.teardown()
         log(f"{self._name} stopped")

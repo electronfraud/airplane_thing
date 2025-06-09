@@ -48,14 +48,14 @@ async def as_asyncio[T](future: concurrent.futures.Future[T]) -> T:
     return result  # type: ignore
 
 
-class LeakyDictionary[K, V]:
+class EphemeralMap[K, V]:
     """
     A dictionary whose items expire after a configurable length of time.
     """
 
     def __init__(self, expiry_secs: int):
         """
-        Create a new leaky dictionary whose items expire `expiry_secs` seconds after being set.
+        Create a new ephemeral dictionary whose items expire `expiry_secs` seconds after being set.
         """
         super().__init__()
         self._expiry_secs = expiry_secs

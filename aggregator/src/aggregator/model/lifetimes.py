@@ -1,14 +1,14 @@
 """
 This module provides an extension to `@dataclass` that makes it possible to define fields whose values expire at a
-certain time after being set. Accessing an attribute whose value has expired returns `None`. Here is an example:
+certain time after being set. Accessing an attribute whose value has expired returns `None`.
 
     import time
 
-    from aggregator.model.lifetimes import lifetimes, expires
+    from aggregator.model.lifetimes import ephemeral_field
 
     @dataclass
     class VehicleState:
-        position: tuple[float, float] | None = limited_lifetime_field(minutes=1)
+        position: tuple[float, float] | None = ephemeral_field(minutes=1)
 
     vs = VehicleState()
     vs.position = (0, 0)  # this value will expire one minute from now
@@ -16,14 +16,14 @@ certain time after being set. Accessing an attribute whose value has expired ret
     time.sleep(60)
     print(vs.position)    # prints None
 
-The default value of a limited-lifetime field is `None`.
+The default value of an ephemeral field is `None`.
 """
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, cast
 
 
-def limited_lifetime_field[T](  # pylint: disable=too-many-arguments
+def ephemeral_field[T](  # pylint: disable=too-many-arguments
     *,
     days: int | float = 0,
     seconds: int | float = 0,
@@ -35,7 +35,7 @@ def limited_lifetime_field[T](  # pylint: disable=too-many-arguments
 ) -> T:  # type: ignore
     return cast(
         T,
-        _LimitedLifetimeDescriptor(
+        _EphemeralValueDescriptor(
             timedelta(
                 days=days,
                 seconds=seconds,
@@ -49,7 +49,7 @@ def limited_lifetime_field[T](  # pylint: disable=too-many-arguments
     )
 
 
-class _LimitedLifetimeDescriptor:
+class _EphemeralValueDescriptor:
     def __init__(self, lifetime: timedelta) -> None:
         self._lifetime = lifetime
         self._expiration = None

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from aggregator.model.flight import Flight
 from aggregator.model.icao_address import ICAOAddress
-from aggregator.model.lifetimes import limited_lifetime_field
+from aggregator.model.lifetimes import ephemeral_field
 from aggregator.model.position import Position
 
 
@@ -21,14 +21,14 @@ class Aircraft:
 
     # fmt:off
     icao_address:   ICAOAddress
-    callsign:       str      | None = limited_lifetime_field(hours=1)
-    squawk:         str      | None = limited_lifetime_field(minutes=30)
+    callsign:       str      | None = ephemeral_field(hours=1)
+    squawk:         str      | None = ephemeral_field(minutes=30)
 
-    altitude:       int      | None = limited_lifetime_field(seconds=10)
-    position:       Position | None = limited_lifetime_field(seconds=10)
-    ground_speed:   int      | None = limited_lifetime_field(seconds=10)
-    track:          float    | None = limited_lifetime_field(seconds=10)
-    vertical_speed: int      | None = limited_lifetime_field(seconds=10)
+    altitude:       int      | None = ephemeral_field(seconds=10)
+    position:       Position | None = ephemeral_field(seconds=10)
+    ground_speed:   int      | None = ephemeral_field(seconds=10)
+    track:          float    | None = ephemeral_field(seconds=10)
+    vertical_speed: int      | None = ephemeral_field(seconds=10)
 
     flight:         Flight   | None = None
     # fmt:on

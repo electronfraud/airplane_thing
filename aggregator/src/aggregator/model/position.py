@@ -5,7 +5,8 @@ from typing import Self
 @dataclass
 class Position:
     """
-    A location on the surface of Earth, referenced to WGS 84.
+    A location on the surface of Earth. Technically no datum is specified by this class, but Mode S position data is
+    referenced to WGS 84, and that is maintained throughout this entire system.
     """
 
     longitude: float

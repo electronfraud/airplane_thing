@@ -1,10 +1,16 @@
 """
-Utilities for serializing aggregator data model objects into JSON.
+Utilities for serializing aggregator data model objects into JSON. Example:
+
+    aircraft = model.Aircraft(...)
+    model.json.dumps([aircraft, ...])
+
+This is equivalent to:
+
+    aircraft = model.Aircraft(...)
+    json.dumps([aircraft, ...], default=<private serialization function>, allow_nan=False, separators=(",", ":"))
 """
 
-from collections.abc import Callable
 import dataclasses
-import functools
 import json
 from typing import Any
 
@@ -23,4 +29,5 @@ def _default(obj: Any) -> Any:
     raise TypeError(f"object of type {type(obj).__name__!r} is not JSON serializable")
 
 
-dumps: Callable[[Any], str] = functools.partial(json.dumps, default=_default, allow_nan=False, separators=(",", ":"))
+def dumps(obj: Any) -> str:
+    return json.dumps(obj, default=_default, allow_nan=False, separators=(",", ":"))

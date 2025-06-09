@@ -1,28 +1,32 @@
 import time
-from aggregator.decoder.message import DecodingError
+from aggregator.mode_s.ingester import DecodingError
 from aggregator.model.icao_address import ICAOAddress
 from aggregator.model.position import Position
-from aggregator.util import LeakyDictionary
+from aggregator.util import EphemeralMap
 import pyModeS
 
 
 class PositionState:
-    def __init__(self, receiver_longitude: float | None, receiver_latitude: float | None):
-        self._receiver_longitude = receiver_longitude
-        self._receiver_latitude = receiver_latitude
+    def __init__(self, receiver_position: Position | None):
+        if receiver_position is None:
+            self._receiver_longitude = None
+            self._receiver_latitude = None
+        else:
+            self._receiver_longitude = receiver_position.longitude
+            self._receiver_latitude = receiver_position.latitude
 
         # These are known prior positions of aircraft, used to disambiguate position data in messages from aircraf
         # we've seen before. The 648-second expiration is based on pyModeS's requirement that prior position references
         # for airborne aircraft be within 180 nautical miles of the aircraft's presumed current position, and an
         # arbitrarily chosen maximum speed of 1000 knots, giving 180 nmi / 1000 kts = 648 s.
-        self._prior_positions = LeakyDictionary[ICAOAddress, Position](648)
+        self._prior_positions = EphemeralMap[ICAOAddress, Position](648)
 
         # These dictionaries store Compact Position Reporting (CPR) messages, used to disambiguate position data in
         # messages from aircraft whose position we haven't yet disambiguated. The first dictionary is for even messages
         # and the second is for odd messages. The 10-second expiration is convention.
         self._prior_cpr_msgs = (
-            LeakyDictionary[ICAOAddress, tuple[int, str]](10),
-            LeakyDictionary[ICAOAddress, tuple[int, str]](10),
+            EphemeralMap[ICAOAddress, tuple[int, str]](10),
+            EphemeralMap[ICAOAddress, tuple[int, str]](10),
         )
 
     def locate(self, icao_address: ICAOAddress, msg_hex: str) -> Position | None:

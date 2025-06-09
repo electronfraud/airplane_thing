@@ -9,10 +9,8 @@ import traceback
 from aggregator import api
 import aggregator.log
 from aggregator.correlator import Correlator
-from aggregator.decoder import Decoder
 from aggregator.log import log
-from aggregator.mode_s_ingester import ModeSIngester
-from aggregator.runnable import Runnable
+from aggregator.mode_s.ingester import ModeSIngester
 from aggregator.swim_ingester import SWIMIngester, SWIMIngesterConfig
 
 
@@ -23,9 +21,7 @@ async def main() -> int:
     runnables = [
         correlator,
         api.Server("", 9999, correlator),
-        ModeSIngester(
-            correlator.in_queue, os.environ["RADIO_HOST"], int(os.environ["RADIO_PORT"]), Decoder()  # type: ignore
-        ),
+        ModeSIngester(correlator.in_queue, os.environ["RADIO_HOST"], int(os.environ["RADIO_PORT"])), # type: ignore
     ]
     try:
         swim_config = SWIMIngesterConfig(

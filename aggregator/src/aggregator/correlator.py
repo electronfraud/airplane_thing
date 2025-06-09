@@ -1,6 +1,6 @@
 import asyncio
 
-from aggregator.decoder.message import (
+from aggregator.mode_s.message import (
     ADSBAirbornePositionMessage,
     ADSBAirborneVelocityMessage,
     ADSBIdentificationMessage,

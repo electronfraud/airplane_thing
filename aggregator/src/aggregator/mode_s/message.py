@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
-from aggregator.decoder.decoder import DecodingError
-from aggregator.decoder.position_state import PositionState
+from aggregator.mode_s import DecodingError
+from aggregator.mode_s.position_state import PositionState
 import pyModeS
 
 from aggregator.model.icao_address import ICAOAddress

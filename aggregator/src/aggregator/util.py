@@ -112,19 +112,3 @@ class EphemeralMap[K, V]:
             return self[key]
         except KeyError:
             return None
-
-
-class ExpiringValue[T]:
-    def __init__(self, expiry_secs: int):
-        self._expiry_secs = expiry_secs
-        self._value: T | None = None
-        self._expires_after = 0
-
-    def get(self) -> T | None:
-        if self._value is None or time.time() > self._expires_after:
-            return None
-        return self._value
-
-    def set(self, value: T | None) -> None:
-        self._value = value
-        self._expires_after = time.time() + self._expiry_secs

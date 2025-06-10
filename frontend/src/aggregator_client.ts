@@ -1,7 +1,7 @@
 import { AircraftLayer, TargetType } from "./aircraft_layer";
 import StaleIndicator from "./stale_indicator";
 
-interface IFlightPlan {
+interface IFlight {
     icao_address?: string;
     callsign?: string;
     registration?: string;
@@ -11,7 +11,7 @@ interface IFlightPlan {
     departure: string;
     route: string;
     arrival: string;
-    assigned_altitude?: number;
+    assigned_cruise_altitude?: number;
 }
 
 interface IPosition {
@@ -28,7 +28,7 @@ interface IAircraftReport {
     ground_speed?: number;
     vertical_speed?: number;
     squawk?: string;
-    flight_plan?: IFlightPlan;
+    flight?: IFlight;
 }
 
 function dataBlock(aircraft: IAircraftReport): string {
@@ -42,14 +42,14 @@ function dataBlock(aircraft: IAircraftReport): string {
             ? Math.round(aircraft.altitude / 100).toLocaleString(undefined, { minimumIntegerDigits: 3 })
             : undefined;
 
-    if (aircraft.flight_plan && typeof aircraft.flight_plan.assigned_altitude === "number") {
-        const assignedAltitude = Math.round(aircraft.flight_plan.assigned_altitude / 100).toLocaleString(undefined, {
+    if (aircraft.flight && typeof aircraft.flight.assigned_cruise_altitude === "number") {
+        const assignedAltitude = Math.round(aircraft.flight.assigned_cruise_altitude / 100).toLocaleString(undefined, {
             minimumIntegerDigits: 3
         });
         if (typeof aircraft.altitude === "number" && typeof altitude === "string") {
             if (altitude === assignedAltitude) {
                 result += `${assignedAltitude}C\n`;
-            } else if (aircraft.altitude < aircraft.flight_plan.assigned_altitude) {
+            } else if (aircraft.altitude < aircraft.flight.assigned_cruise_altitude) {
                 if (typeof aircraft.vertical_speed === "number") {
                     if (aircraft.vertical_speed > 0) {
                         result += `${assignedAltitude}↑${altitude}\n`;
@@ -88,8 +88,8 @@ function dataBlock(aircraft: IAircraftReport): string {
         }
     }
 
-    if (aircraft.flight_plan) {
-        result += aircraft.flight_plan.cid;
+    if (aircraft.flight) {
+        result += aircraft.flight.cid;
     }
     // prettier-ignore
     switch (aircraft.squawk) {
@@ -107,8 +107,8 @@ function dataBlock(aircraft: IAircraftReport): string {
             result += "\n";
     }
 
-    if (aircraft.flight_plan) {
-        result += aircraft.flight_plan.arrival;
+    if (aircraft.flight) {
+        result += aircraft.flight.arrival;
         result += "\n";
     }
 
@@ -202,7 +202,7 @@ export default class AggregatorClient {
                         dataBlock: dataBlock(aircraft),
                         targetType: targetType(aircraft),
                         isEmergency: isEmergency(aircraft),
-                        hasFlightPlan: !!aircraft.flight_plan
+                        hasFlightPlan: !!aircraft.flight
                     };
                 });
             this.aircraftLayer.update();

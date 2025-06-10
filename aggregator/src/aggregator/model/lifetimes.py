@@ -52,21 +52,23 @@ def ephemeral_field[T](  # pylint: disable=too-many-arguments
 class _EphemeralValueDescriptor:
     def __init__(self, lifetime: timedelta) -> None:
         self._lifetime = lifetime
-        self._expiration = None
 
+    # pylint: disable=attribute-defined-outside-init
     def __set_name__(self, _, name: str) -> None:
-        self._name = "_" + name  # pylint: disable=attribute-defined-outside-init
+        self._name = "_" + name
+        self._expiration_name = f"_{name}_expiration"
 
     def __get__(self, obj: object, _):
         if obj is None:
             return None
-        if self._expiration is None:
+        expiration = getattr(obj, self._expiration_name, None)
+        if expiration is None:
             return None
-        if datetime.now(timezone.utc) > self._expiration:
-            self._expiration = None
+        if datetime.now(timezone.utc) > expiration:
+            setattr(obj, self._expiration_name, None)
             return None
         return getattr(obj, self._name, None)
 
     def __set__(self, obj: object, value: Any) -> None:
-        self._expiration = datetime.now(timezone.utc) + self._lifetime
+        setattr(obj, self._expiration_name, datetime.now(timezone.utc) + self._lifetime)
         setattr(obj, self._name, value)

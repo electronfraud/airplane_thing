@@ -100,6 +100,7 @@ class SWIMIngester(Runnable, MessageHandler):
         except etree.XMLSyntaxError as exc:
             log(f"XML syntax error: {exc}")
             return
+        nas30_prefix = {v: k for k, v in root.nsmap.items()}[_NAS30_URI]
 
         assert root.tag == f"{_NAS30}MessageCollection"
         assert len(root) == 1
@@ -109,10 +110,12 @@ class SWIMIngester(Runnable, MessageHandler):
         flight_tag = root[0][0]
 
         assert flight_tag.tag == "flight"
-        nas30_prefix = {v: k for k, v in root.nsmap.items()}[_NAS30_URI]
         assert flight_tag.get(f"{_XSI}type") == f"{nas30_prefix}:NasFlightType"
 
-        if flight_tag.find("flightStatus").get("fdpsFlightStatus") != "ACTIVE":
+        status_tag = flight_tag.find("flightStatus")
+        if status_tag is None:
+            return
+        if status_tag.get("fdpsFlightStatus") != "ACTIVE":
             return
 
         aircraft_desc_tag = flight_tag.find("aircraftDescription")

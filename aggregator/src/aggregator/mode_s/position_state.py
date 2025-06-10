@@ -17,7 +17,7 @@ class PositionState:
             self._receiver_longitude = receiver_position.longitude
             self._receiver_latitude = receiver_position.latitude
 
-        # These are known prior positions of aircraft, used to disambiguate position data in messages from aircraf
+        # These are known prior positions of aircraft, used to disambiguate position data in messages from aircraft
         # we've seen before. The 648-second expiration is based on pyModeS's requirement that prior position references
         # for airborne aircraft be within 180 nautical miles of the aircraft's presumed current position, and an
         # arbitrarily chosen maximum speed of 1000 knots, giving 180 nmi / 1000 kts = 648 s.

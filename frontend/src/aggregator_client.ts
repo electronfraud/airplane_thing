@@ -14,9 +14,14 @@ interface IFlightPlan {
     assigned_altitude?: number;
 }
 
+interface IPosition {
+    longitude: number;
+    latitude: number;
+}
+
 interface IAircraftReport {
     icao_address: string;
-    position: [number, number];
+    position: IPosition;
     callsign?: string;
     altitude?: number;
     track?: number;
@@ -186,8 +191,8 @@ export default class AggregatorClient {
             this.aircraftLayer.features = payload.map((aircraft) => {
                 return {
                     icaoAddress: aircraft.icao_address,
-                    x: aircraft.position[1],
-                    y: aircraft.position[0],
+                    x: aircraft.position.longitude,
+                    y: aircraft.position.latitude,
                     groundSpeed: aircraft.ground_speed,
                     course: aircraft.track,
                     dataBlock: dataBlock(aircraft),

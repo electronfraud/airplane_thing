@@ -31,88 +31,57 @@ interface IAircraftReport {
     flight?: IFlight;
 }
 
-function dataBlock(aircraft: IAircraftReport): string {
-    let result = "";
-    if (typeof aircraft.callsign === "string") {
-        result += aircraft.callsign + "\n";
-    }
-
-    const altitude =
-        typeof aircraft.altitude === "number"
-            ? Math.round(aircraft.altitude / 100).toLocaleString(undefined, { minimumIntegerDigits: 3 })
-            : undefined;
-
-    if (aircraft.flight && typeof aircraft.flight.assigned_cruise_altitude === "number") {
-        const assignedAltitude = Math.round(aircraft.flight.assigned_cruise_altitude / 100).toLocaleString(undefined, {
-            minimumIntegerDigits: 3
-        });
-        if (typeof aircraft.altitude === "number" && typeof altitude === "string") {
-            if (altitude === assignedAltitude) {
-                result += `${assignedAltitude}C\n`;
-            } else if (aircraft.altitude < aircraft.flight.assigned_cruise_altitude) {
-                if (typeof aircraft.vertical_speed === "number") {
-                    if (aircraft.vertical_speed > 0) {
-                        result += `${assignedAltitude}↑${altitude}\n`;
-                    } else {
-                        result += `${assignedAltitude}-${altitude}\n`;
-                    }
-                } else {
-                    result += `${assignedAltitude} ${altitude}\n`;
-                }
-            } else {
-                if (typeof aircraft.vertical_speed === "number") {
-                    if (aircraft.vertical_speed < 0) {
-                        result += `${assignedAltitude}↓${altitude}\n`;
-                    } else {
-                        result += `${assignedAltitude}+${altitude}\n`;
-                    }
-                } else {
-                    result += `${assignedAltitude} ${altitude}\n`;
-                }
-            }
-        } else {
-            result += `${assignedAltitude}XXXX\n`;
-        }
-    } else if (
-        aircraft.squawk &&
-        (aircraft.squawk === "1200" || aircraft.squawk === "1201" || aircraft.squawk === "1202")
-    ) {
-        if (typeof altitude === "string") {
-            result += `VFR/${altitude}\n`;
-        } else {
-            result += "VFRXXXX\n";
-        }
-    } else {
-        if (typeof altitude === "string") {
-            result += `${altitude}\n`;
-        }
-    }
-
-    if (aircraft.flight) {
-        result += aircraft.flight.cid;
-    }
+function specialSquawkIndicator(squawk?: string): string {
     // prettier-ignore
-    switch (aircraft.squawk) {
-        case "1276": result += "ADIZ\n"; break;
-        case "7400": result += "LLNK\n"; break;
-        case "7500": result += "HIJK\n"; break;
-        case "7600": result += "RDOF\n"; break;
-        case "7700": result += "EMRG\n"; break;
-        case "7777": result += "AFIO\n"; break;
+    switch (squawk) {
+        case "1200":
+        case "1201":
+        case "1202": return "VFR";  break;
+        case "1276": return "ADIZ"; break;
+        case "7400": return "LLNK"; break;
+        case "7500": return "HIJK"; break;
+        case "7600": return "RDOF"; break;
+        case "7700": return "EMRG"; break;
+        case "7777": return "AFIO"; break;
         default:
-            if (typeof aircraft.ground_speed === "number") {
-                result += " ";
-                result += Math.round(aircraft.ground_speed).toString();
-            }
-            result += "\n";
+            return "";
     }
+}
 
-    if (aircraft.flight) {
-        result += aircraft.flight.arrival;
-        result += "\n";
+function verticalTrendString(verticalSpeed?: number): string {
+    if (typeof verticalSpeed === "number") {
+        if (verticalSpeed > 100) return "↑";
+        if (verticalSpeed < -100) return "↓";
+        return "=";
     }
+    return "";
+}
 
-    return result.trimEnd();
+function altitudeString(numeric?: number): string {
+    if (typeof numeric === "number") {
+        return Math.round(numeric / 100).toLocaleString(undefined, { minimumIntegerDigits: 3 });
+    }
+    return "";
+}
+
+function groundSpeedString(numeric?: number): string {
+    if (typeof numeric === "number") {
+        return Math.round(numeric / 10).toLocaleString(undefined, { minimumIntegerDigits: 2 });
+    }
+    return "";
+}
+
+function dataBlock(aircraft: IAircraftReport): string {
+    return `
+        ${specialSquawkIndicator(aircraft.squawk)}
+        ${aircraft.callsign ?? ""} ${aircraft.flight?.icao_type ?? ""}
+        ${altitudeString(aircraft.altitude)}${verticalTrendString(aircraft.vertical_speed)} ${groundSpeedString(
+        aircraft.ground_speed
+    )}
+        ${aircraft.flight?.departure ?? ""} ${aircraft.flight?.arrival ?? ""}
+    `
+        .replaceAll(/  +/g, " ")
+        .trim();
 }
 
 function targetType(aircraft: IAircraftReport): TargetType {

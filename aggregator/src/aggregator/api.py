@@ -17,6 +17,7 @@ class Client:
 
 class Server(Runnable):
     def __init__(self, listen_host: str, listen_port: int, correlator: Correlator):
+        super().__init__()
         self._listen_host = listen_host
         self._listen_port = listen_port
         self._correlator = correlator
@@ -35,7 +36,7 @@ class Server(Runnable):
             pass
 
         # Send a message with all known aircraft to the frontend clients.
-        message = dumps([a for a in self._correlator.aircraft.items() if a.position is not None])
+        message = dumps([a for a in self._correlator.aircraft.values() if a.position is not None])
 
         futures: list[Awaitable[None]] = []
         try:

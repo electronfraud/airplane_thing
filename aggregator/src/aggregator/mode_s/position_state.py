@@ -1,9 +1,11 @@
 import time
-from aggregator.mode_s.ingester import DecodingError
+
+import pyModeS
+
+from aggregator.mode_s import DecodingError
 from aggregator.model.icao_address import ICAOAddress
 from aggregator.model.position import Position
 from aggregator.util import EphemeralMap
-import pyModeS
 
 
 class PositionState:

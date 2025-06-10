@@ -5,7 +5,6 @@ import pyModeS
 
 from aggregator.log import log
 from aggregator.mode_s import DecodingError
-from aggregator.mode_s.message import ModeSMessage
 from aggregator.mode_s.message import (
     ADSBAirbornePositionMessage,
     ADSBAirborneVelocityMessage,

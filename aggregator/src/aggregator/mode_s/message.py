@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Self
 
-from aggregator.mode_s import DecodingError
-from aggregator.mode_s.position_state import PositionState
 import pyModeS
 
+from aggregator.mode_s import DecodingError
+from aggregator.mode_s.position_state import PositionState
 from aggregator.model.icao_address import ICAOAddress
 from aggregator.model.position import Position
 

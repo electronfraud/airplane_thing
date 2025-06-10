@@ -21,7 +21,7 @@ interface IPosition {
 
 interface IAircraftReport {
     icao_address: string;
-    position: IPosition;
+    position?: IPosition;
     callsign?: string;
     altitude?: number;
     track?: number;
@@ -188,19 +188,23 @@ export default class AggregatorClient {
         });
         ws.addEventListener("message", (e) => {
             const payload = JSON.parse(e.data as string) as IAircraftReport[];
-            this.aircraftLayer.features = payload.map((aircraft) => {
-                return {
-                    icaoAddress: aircraft.icao_address,
-                    x: aircraft.position.longitude,
-                    y: aircraft.position.latitude,
-                    groundSpeed: aircraft.ground_speed,
-                    course: aircraft.track,
-                    dataBlock: dataBlock(aircraft),
-                    targetType: targetType(aircraft),
-                    isEmergency: isEmergency(aircraft),
-                    hasFlightPlan: !!aircraft.flight_plan
-                };
-            });
+            this.aircraftLayer.features = payload
+                .filter((aircraft) => {
+                    return !!aircraft.position;
+                })
+                .map((aircraft) => {
+                    return {
+                        icaoAddress: aircraft.icao_address,
+                        x: aircraft.position!.longitude,
+                        y: aircraft.position!.latitude,
+                        groundSpeed: aircraft.ground_speed,
+                        course: aircraft.track,
+                        dataBlock: dataBlock(aircraft),
+                        targetType: targetType(aircraft),
+                        isEmergency: isEmergency(aircraft),
+                        hasFlightPlan: !!aircraft.flight_plan
+                    };
+                });
             this.aircraftLayer.update();
         });
     }

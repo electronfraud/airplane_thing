@@ -54,7 +54,12 @@ class ModeSIngester(Runnable):
             await asyncio.sleep(1)
 
     async def step(self) -> None:
-        line = await cast(asyncio.StreamReader, self._reader).readline()
+        try:
+            line = await cast(asyncio.StreamReader, self._reader).readline()
+        except ConnectionResetError:
+            log("connection reset")
+            await self.setup()
+            return
 
         if not line:
             log("connection closed unexpectedly")

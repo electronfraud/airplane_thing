@@ -31,6 +31,11 @@ interface IAircraftReport {
     flight?: IFlight;
 }
 
+interface IUpdate {
+    aircraft: IAircraftReport[];
+    breadcrumbs: IPosition[];
+}
+
 function specialSquawkIndicator(squawk?: string): string {
     // prettier-ignore
     switch (squawk) {
@@ -156,8 +161,8 @@ export default class AggregatorClient {
             this.#connect();
         });
         ws.addEventListener("message", (e) => {
-            const payload = JSON.parse(e.data as string) as IAircraftReport[];
-            this.aircraftLayer.features = payload
+            const payload = JSON.parse(e.data as string) as IUpdate;
+            this.aircraftLayer.aircraftFeatures = payload.aircraft
                 .filter((aircraft) => {
                     return !!aircraft.position;
                 })
@@ -174,6 +179,12 @@ export default class AggregatorClient {
                         hasFlightPlan: !!aircraft.flight
                     };
                 });
+            this.aircraftLayer.breadcrumbFeatures = payload.breadcrumbs.map((crumb) => {
+                return {
+                    x: crumb.longitude,
+                    y: crumb.latitude
+                };
+            });
             this.aircraftLayer.update();
         });
     }

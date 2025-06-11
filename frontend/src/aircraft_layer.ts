@@ -22,6 +22,11 @@ export interface IAircraftFeature {
     hasFlightPlan: boolean;
 }
 
+export interface IBreadcrumbFeature {
+    x: number;
+    y: number;
+}
+
 function drawFlightPlanSymbol(ctx: CanvasRenderingContext2D) {
     ctx.moveTo(9, 3);
     ctx.lineTo(15, 9);
@@ -44,6 +49,7 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
 
     for (const variation of variations) {
         ctx.strokeStyle = variation[1];
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.beginPath();
         ctx.moveTo(9, 3);
@@ -55,6 +61,14 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
         const symbol = await createImageBitmap(canvas);
         map.addImage(`${variation[0]}aircraft`, symbol);
     }
+
+    ctx.fillStyle = ConsoleGreenDim;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.ellipse(9, 9, 2, 2, 0, 0, 2 * Math.PI);
+    ctx.fill();
+    const symbol = await createImageBitmap(canvas);
+    map.addImage("breadcrumb", symbol);
 
     // for (const hasFlightPlan of [false, true]) {
     //     const flightPlan = hasFlightPlan ? "flight-plan-" : "";
@@ -104,18 +118,21 @@ export async function addAircraftSymbols(map: mapboxgl.Map) {
 }
 
 export class AircraftLayer {
-    features: IAircraftFeature[] = [];
+    aircraftFeatures: IAircraftFeature[] = [];
+    breadcrumbFeatures: IBreadcrumbFeature[] = [];
 
     private map: mapboxgl.Map;
-    private pointSourceId: string;
+    private aircraftPointSourceId: string;
     private vectorSourceId: string;
+    private breadcrumbPointSourceId: string;
 
     private declutterer: Declutterer;
 
     constructor(id: string, map: mapboxgl.Map) {
         this.map = map;
-        this.pointSourceId = `${id}-points-source`;
+        this.aircraftPointSourceId = `${id}-aircraft-points-source`;
         this.vectorSourceId = `${id}-vectors-source`;
+        this.breadcrumbPointSourceId = `${id}-breadcrumb-points-source`;
 
         this.declutterer = new Declutterer(map);
 
@@ -124,7 +141,7 @@ export class AircraftLayer {
             console.log(e.id);
         });
         this.map.on("load", () => {
-            that.map.addSource(that.pointSourceId, {
+            that.map.addSource(that.aircraftPointSourceId, {
                 type: "geojson",
                 data: {
                     type: "FeatureCollection",
@@ -134,7 +151,7 @@ export class AircraftLayer {
             that.map.addLayer({
                 id: id,
                 type: "symbol",
-                source: that.pointSourceId,
+                source: that.aircraftPointSourceId,
                 layout: {
                     "icon-image": ["concat", ["case", ["get", "isEmergency"], "emergency-", ""], "aircraft"],
                     "icon-allow-overlap": true,
@@ -179,25 +196,44 @@ export class AircraftLayer {
                     "line-color": ["case", ["get", "isEmergency"], ConsoleRed, ConsoleGreen]
                 }
             });
+
+            that.map.addSource(that.breadcrumbPointSourceId, {
+                type: "geojson",
+                data: {
+                    type: "FeatureCollection",
+                    features: []
+                }
+            });
+            that.map.addLayer({
+                id: `${id}-breadcrumbs`,
+                type: "symbol",
+                source: that.breadcrumbPointSourceId,
+                layout: {
+                    "icon-image": "breadcrumb",
+                    "icon-allow-overlap": true
+                }
+            });
         });
     }
 
     update() {
         // generate a point feature for each aircraft
-        const points = this.map.getSource(this.pointSourceId) as GeoJSONSource | null;
-        if (!points) {
+        const aircraftPoints = this.map.getSource(this.aircraftPointSourceId) as GeoJSONSource | null;
+        if (!aircraftPoints) {
             return;
         }
-        const pointFeatures: GeoJSON.Feature<GeoJSON.Point, IAircraftFeature>[] = this.features.map((feature) => {
-            return {
-                type: "Feature",
-                properties: feature,
-                geometry: {
-                    type: "Point",
-                    coordinates: [feature.x, feature.y]
-                }
-            };
-        });
+        const aircraftPointFeatures: GeoJSON.Feature<GeoJSON.Point, IAircraftFeature>[] = this.aircraftFeatures.map(
+            (feature) => {
+                return {
+                    type: "Feature",
+                    properties: feature,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [feature.x, feature.y]
+                    }
+                };
+            }
+        );
 
         // generate a line feature depicting one-minute DR position for each aircraft
         const vectors = this.map.getSource(this.vectorSourceId) as GeoJSONSource | null;
@@ -205,7 +241,7 @@ export class AircraftLayer {
             return;
         }
         const vectorFeatures = new Array<GeoJSON.Feature<GeoJSON.LineString, IAircraftFeature>>();
-        for (const feature of this.features) {
+        for (const feature of this.aircraftFeatures) {
             if (typeof feature.groundSpeed !== "number" || typeof feature.course !== "number") {
                 continue;
             }
@@ -234,12 +270,12 @@ export class AircraftLayer {
         }
 
         // declutter labels
-        this.declutterer.setFeatures(pointFeatures, vectorFeatures);
+        this.declutterer.setFeatures(aircraftPointFeatures, vectorFeatures);
         this.declutterer.declutterLabels();
         this.declutterer.declutterLabels();
 
         // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
-        (this.map.getSource(this.pointSourceId) as GeoJSONSource).setData({
+        (this.map.getSource(this.aircraftPointSourceId) as GeoJSONSource).setData({
             type: "FeatureCollection",
             features: this.declutterer.aircraftPositions
         });
@@ -247,6 +283,28 @@ export class AircraftLayer {
         (this.map.getSource(this.vectorSourceId) as GeoJSONSource).setData({
             type: "FeatureCollection",
             features: this.declutterer.velocityVectors
+        });
+
+        // generate a point feature for each aircraft
+        const breadcrumbPoints = this.map.getSource(this.breadcrumbPointSourceId) as GeoJSONSource | null;
+        if (!breadcrumbPoints) {
+            return;
+        }
+        const breadcrumbPointFeatures: GeoJSON.Feature<GeoJSON.Point, IBreadcrumbFeature>[] =
+            this.breadcrumbFeatures.map((feature) => {
+                return {
+                    type: "Feature",
+                    properties: feature,
+                    geometry: {
+                        type: "Point",
+                        coordinates: [feature.x, feature.y]
+                    }
+                };
+            });
+        // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
+        (this.map.getSource(this.breadcrumbPointSourceId) as GeoJSONSource).setData({
+            type: "FeatureCollection",
+            features: breadcrumbPointFeatures
         });
     }
 }

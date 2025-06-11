@@ -36,7 +36,10 @@ class Server(Runnable):
             pass
 
         # Send a message with all known aircraft to the frontend clients.
-        message = dumps([a for a in self._correlator.aircraft.values() if a.position is not None])
+        message = dumps({
+            "aircraft": [a for a in self._correlator.aircraft.values() if a.position is not None],
+            "breadcrumbs": self._correlator.breadcrumbs()
+        })
 
         futures: list[Awaitable[None]] = []
         try:

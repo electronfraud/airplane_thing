@@ -46,7 +46,7 @@ class ZoomToFitControl {
     }
 
     #zoom() {
-        const features = this.aircraftLayer?.features ?? [];
+        const features = this.aircraftLayer?.aircraftFeatures ?? [];
         if (features.length == 0) {
             return;
         }
@@ -55,7 +55,7 @@ class ZoomToFitControl {
         let minY = 90;
         let maxX = -180;
         let maxY = -90;
-        for (const feature of this.aircraftLayer?.features ?? []) {
+        for (const feature of this.aircraftLayer?.aircraftFeatures ?? []) {
             if (feature.x < minX) minX = feature.x;
             if (feature.y < minY) minY = feature.y;
             if (feature.x > maxX) maxX = feature.x;

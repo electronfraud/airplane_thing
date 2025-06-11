@@ -1,4 +1,7 @@
 import asyncio
+from collections.abc import Iterable
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 
 from aggregator.mode_s.message import (
     ADSBAirbornePositionMessage,
@@ -13,6 +16,7 @@ from aggregator.mode_s.message import (
 from aggregator.model.aircraft import Aircraft
 from aggregator.model.flight import Flight
 from aggregator.model.icao_address import ICAOAddress
+from aggregator.model.position import Position
 from aggregator.runnable import Runnable
 from aggregator.util import EphemeralMap
 
@@ -38,6 +42,7 @@ class Correlator(Runnable):
 
         self.aircraft: EphemeralMap[ICAOAddress, Aircraft] = EphemeralMap(60 * 60)
         self._flights: dict[ICAOAddress, Flight] = {}
+        self._breadcrumbs: EphemeralMap[ICAOAddress, list[Breadcrumb]] = EphemeralMap(60)
 
     async def step(self) -> None:
         self.new_data_event.clear()
@@ -54,6 +59,17 @@ class Correlator(Runnable):
     async def teardown(self) -> None:
         self.in_queue.shutdown(immediate=True)
         self.new_data_event.set()
+
+    def breadcrumbs(self) -> Iterable[Position]:
+        result: list[Position] = []
+        one_min_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+
+        for trail in self._breadcrumbs.values():
+            for crumb in trail:
+                if crumb.timestamp >= one_min_ago:
+                    result.append(crumb.position)
+
+        return result
 
     def _receive_mode_s(self, message: ModeSMessage) -> None:
         try:
@@ -73,6 +89,7 @@ class Correlator(Runnable):
                 if message.altitude_type == AltitudeType.BARO_PRESSURE:
                     aircraft.altitude = message.altitude
                 aircraft.position = message.position
+                self._update_breadcrumbs(aircraft)
             case ADSBAirborneVelocityMessage():
                 aircraft.ground_speed = message.ground_speed
                 aircraft.track = message.track
@@ -94,3 +111,28 @@ class Correlator(Runnable):
             self.aircraft[flight.icao_address].flight = flight
         except KeyError:
             pass
+
+    def _update_breadcrumbs(self, aircraft: Aircraft) -> None:
+        if aircraft.position is None:
+            return
+
+        try:
+            breadcrumbs = self._breadcrumbs[aircraft.icao_address]
+        except KeyError:
+            breadcrumbs = []
+
+        now = datetime.now(timezone.utc)
+        breadcrumbs = [x for x in breadcrumbs[-10:] if x.timestamp >= now - timedelta(minutes=1)]
+
+        if not breadcrumbs:
+            breadcrumbs = [Breadcrumb(now, aircraft.position)]
+        elif breadcrumbs[-1].timestamp <= now - timedelta(seconds=6):
+            breadcrumbs.append(Breadcrumb(now, aircraft.position))
+
+        self._breadcrumbs[aircraft.icao_address] = breadcrumbs
+
+
+@dataclass
+class Breadcrumb:
+    timestamp: datetime
+    position: Position

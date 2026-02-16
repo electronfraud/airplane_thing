@@ -14,6 +14,13 @@ from aggregator.mode_s.ingester import ModeSIngester
 from aggregator.swim_ingester import SWIMIngester, SWIMIngesterConfig
 
 
+def getenv(key: str) -> str:
+    value = os.environ[key]
+    if not value:
+        raise KeyError(key)
+    return value
+
+
 async def main() -> int:
     aggregator.log.set_src_root(os.path.dirname(__file__))
 
@@ -25,11 +32,11 @@ async def main() -> int:
     ]
     try:
         swim_config = SWIMIngesterConfig(
-            os.environ["SWIM_URL"],
-            os.environ["SWIM_QUEUE"],
-            os.environ["SWIM_USER"],
-            os.environ["SWIM_PASSWORD"],
-            os.environ["SWIM_VPN"],
+            getenv("SWIM_URL"),
+            getenv("SWIM_QUEUE"),
+            getenv("SWIM_USER"),
+            getenv("SWIM_PASSWORD"),
+            getenv("SWIM_VPN"),
         )
     except KeyError as exc:
         log(f"{exc.args[0]} not set; no SWIM data will be ingested")

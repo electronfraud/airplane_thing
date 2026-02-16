@@ -11,3 +11,5 @@ services:
       SWIM_USER: ${SWIM_USER}
       SWIM_PASSWORD: ${SWIM_PASSWORD}
       SWIM_VPN: ${SWIM_VPN}
+    extra_hosts:
+      - host.docker.internal:host-gateway

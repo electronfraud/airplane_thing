@@ -9,3 +9,4 @@ build
 aggregator/.env
 frontend/src/token.ts
 replay/archive.csv
+start.log

@@ -5,7 +5,7 @@ dependencies = [
     "asyncio",
     "bitstring",
     "lxml",
-    "pyModeS",
+    "pyModeS<3",
     "solace-pubsubplus",
     "websockets"
 ]
